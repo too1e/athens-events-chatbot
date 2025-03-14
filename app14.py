@@ -1,3 +1,7 @@
+import os
+# Set the API key explicitly from Streamlit secrets
+if "OPENAI_API_KEY" not in os.environ:
+    os.environ["OPENAI_API_KEY"] = st.secrets["general"]["OPENAI_API_KEY"]
 import streamlit as st
 from datetime import datetime, timedelta
 import re
