@@ -106,9 +106,9 @@ def filter_events(category=None, start_date=None, end_date=None, location_substr
     if location_substring:
         df = df[df["Location"].fillna("").str.lower().str.contains(location_substring.lower())]
     if start_date and end_date:
-        df = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)]
+    df = df[(df["Date"].dt.date >= start_date.date()) & (df["Date"].dt.date <= end_date.date())]
     elif start_date:
-        df = df[df["Date"] == start_date]
+    df = df[df["Date"].dt.date == start_date.date()]
     return df
 
 def get_next_week_range():
