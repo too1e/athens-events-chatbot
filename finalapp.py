@@ -221,7 +221,7 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date:"):
         date_context_text = f"for {target_date.strftime('%A, %B %d, %Y')}"
     
     conversation_history = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages])
-    
+
     custom_instructions = (
         f"Hey, it's {today_str} and we're in the Eastern Time Zone. {date_context_text}. "
         "You're The Guide Dawg 🐾—your chill, collegiate event and date planning assistant with access to the Athens events dataset. "
@@ -237,6 +237,7 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date:"):
         "Differentiate between providing a curated itinerary for date planning and simply listing events when the user wants to know what's happening. "
         "If asked to plan a a date night specifically, combine an event or two later in the day with a dinner recoomendation, combine your creativity with the dataset. "
         "However, if the query is casual or conversational (e.g., 'what's up', 'how's it going', 'whats going on'), respond naturally with a friendly greeting and creative flair. "
+        "Ensure that the final output is nicely organized, consistently formatted, and uses the same plain text font throughout. Your goal is to improve the student and local experience in Athens GA, be helpful!"
         "Below is the dataset context for the specified period:\n"
         f"{dataset_context}"
     )
