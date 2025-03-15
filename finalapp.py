@@ -8,11 +8,15 @@ from llama_index.core import StorageContext, load_index_from_storage
 from llama_index.core.settings import Settings
 from llama_index.llms.openai import OpenAI
 
-# Set the API key explicitly from Streamlit secrets (make sure your secrets.toml includes your key)
+# -------------------------------------------------------------------
+# 1. SETUP AND INITIALIZATION
+# -------------------------------------------------------------------
+
+# Set the API key explicitly from Streamlit secrets
 if "OPENAI_API_KEY" not in os.environ:
     os.environ["OPENAI_API_KEY"] = st.secrets["general"]["OPENAI_API_KEY"]
 
-# Load environment variables from .env (optional, for local development) 
+# Load environment variables (optional, for local development)
 load_dotenv()
 
 # Set up the OpenAI LLM (using GPT-4 in this version)
@@ -23,26 +27,27 @@ storage_context = StorageContext.from_defaults(persist_dir="./athens_events_inde
 index = load_index_from_storage(storage_context)
 chat_engine = index.as_chat_engine(chat_mode="context")
 
-# Load the events dataset from Excel and parse the Date column
+# Load the events dataset from Excel and convert "Date" to a plain date
 events_df = pd.read_excel("athens_events.xlsx")
-# Convert "Date" to a plain date (not a timestamp)
 events_df["Date"] = pd.to_datetime(events_df["Date"], errors="coerce").dt.date
 
-# Set the app title to "The Guide Dawg 🐾"
+# Set the app title
 st.title("The Guide Dawg 🐾")
 
-# Initialize conversation history and last_target_date in session state if not already present
+# Initialize session state if not already present
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "last_target_date" not in st.session_state:
     st.session_state.last_target_date = None
 
-# Display previous conversation messages
+# Display conversation history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --- Helper Functions ---
+# -------------------------------------------------------------------
+# 2. HELPER FUNCTIONS
+# -------------------------------------------------------------------
 
 def format_price(price):
     try:
@@ -57,6 +62,77 @@ def format_time(time_str):
         return time_obj.strftime("%-I:%M %p")
     except Exception:
         return time_str
+
+def format_events_simple_list(df: pd.DataFrame) -> str:
+    """Return a bullet list of events in chronological order."""
+    if df.empty:
+        return "_No events found._"
+    df = df.sort_values(["Date", "Time"])
+    lines = []
+    for _, row in df.iterrows():
+        date_str = row["Date"].strftime("%A, %B %d, %Y")
+        time_str = format_time(str(row["Time"]))
+        price_str = format_price(row["Price"])
+        line = f"- {row['Event']} on {date_str} at {time_str} @ {row['Location']} ({price_str})"
+        lines.append(line)
+    return "\n".join(lines)
+
+def group_events_by_day(df: pd.DataFrame) -> str:
+    """Group events by Date with bold headings per day."""
+    if df.empty:
+        return "_No events found._"
+    df = df.sort_values(["Date", "Time"])
+    grouped_text = ""
+    current_day = None
+    for _, row in df.iterrows():
+        day_date = row["Date"]
+        if day_date != current_day:
+            if grouped_text:
+                grouped_text += "\n\n"
+            day_str = day_date.strftime("%A, %B %d, %Y")
+            grouped_text += f"**{day_str}**\n"
+            current_day = day_date
+        time_str = format_time(str(row["Time"]))
+        price_str = format_price(row["Price"])
+        bullet_line = f"- {row['Event']} at {time_str} @ {row['Location']} ({price_str})"
+        grouped_text += bullet_line + "\n"
+    return grouped_text.strip()
+
+# Single definition of filter_events (dates are plain dates, so no .dt needed)
+def filter_events(category=None, start_date=None, end_date=None, location_substring=None) -> pd.DataFrame:
+    """Return a DataFrame of events filtered by category, date range, etc."""
+    df = events_df.copy()
+    if category:
+        df = df[df["Category"].fillna("").str.lower() == category.lower()]
+    if location_substring:
+        df = df[df["Location"].fillna("").str.lower().str.contains(location_substring.lower())]
+    if start_date and end_date:
+        df = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)]
+    elif start_date:
+        df = df[df["Date"] == start_date]
+    return df
+
+def get_grouped_events_for_date_range_range(start_date, end_date):
+    current = start_date
+    all_context = ""
+    while current <= end_date:
+        events = get_events_for_date_range(current)
+        day_str = current.strftime("%A, %B %d, %Y")
+        events_text = events if not events.startswith("No events") else "No events."
+        all_context += f"{day_str}:\n{events_text}\n"
+        current += timedelta(days=1)
+    return all_context
+
+def get_grouped_category_events_for_date_range(category, start_date, end_date):
+    current = start_date
+    all_context = ""
+    while current <= end_date:
+        events = get_events_for_category_and_date(category, current)
+        day_str = current.strftime("%A, %B %d, %Y")
+        events_text = events if not events.startswith(f"No {category}") else "No events."
+        all_context += f"{day_str}:\n{events_text}\n"
+        current += timedelta(days=1)
+    return all_context
 
 def get_events_for_date_range(target_date):
     filtered = events_df[events_df["Date"] == target_date]
@@ -97,28 +173,6 @@ def get_events_for_date_range_range(start_date, end_date):
         price_str = format_price(row["Price"])
         context += f"• {row['Event']} on {event_date_str} at {time_str_formatted} at {row['Location']} — {price_str}\n"
     return context
-
-def get_grouped_events_for_date_range_range(start_date, end_date):
-    current = start_date
-    all_context = ""
-    while current <= end_date:
-        events = get_events_for_date_range(current)
-        day_str = current.strftime("%A, %B %d, %Y")
-        events_text = events if not events.startswith("No events") else "No events."
-        all_context += f"{day_str}:\n{events_text}\n"
-        current += timedelta(days=1)
-    return all_context
-
-def get_grouped_category_events_for_date_range(category, start_date, end_date):
-    current = start_date
-    all_context = ""
-    while current <= end_date:
-        events = get_events_for_category_and_date(category, current)
-        day_str = current.strftime("%A, %B %d, %Y")
-        events_text = events if not events.startswith(f"No {category}") else "No events."
-        all_context += f"{day_str}:\n{events_text}\n"
-        current += timedelta(days=1)
-    return all_context
 
 def determine_target_date(query, base_date):
     query_lower = query.lower()
@@ -173,24 +227,10 @@ def build_dataset_context(query, target_date):
         df = filter_events(start_date=target_date, end_date=target_date)
         return format_events_simple_list(df)
 
-# --- Updated filter_events function (comparing dates directly) ---
-def filter_events(category=None, start_date=None, end_date=None, location_substring=None) -> pd.DataFrame:
-    df = events_df.copy()
-    if category:
-        df = df[df["Category"].fillna("").str.lower() == category.lower()]
-    if location_substring:
-        df = df[df["Location"].fillna("").str.lower().str.contains(location_substring.lower())]
-    if start_date and end_date:
-        df = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)]
-    elif start_date:
-        df = df[df["Date"] == start_date]
-    return df
-
 # -------------------------------------------------------------------
-# 4. MAIN APPLICATION LOGIC
+# 3. MAIN APPLICATION LOGIC
 # -------------------------------------------------------------------
 
-# Use a date object for current_date
 current_date = datetime.today().date()
 today_str = current_date.strftime("%A, %B %d, %Y")
 
