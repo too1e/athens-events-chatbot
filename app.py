@@ -29,7 +29,7 @@ events_df = pd.read_excel("athens_events.xlsx")
 events_df["Date"] = pd.to_datetime(events_df["Date"], errors="coerce").dt.date
 
 # Set up app title
-st.title("The Athens Passport")
+st.title("The Guide Dawg 🐾")
 
 # Initialize session state
 if "messages" not in st.session_state:
