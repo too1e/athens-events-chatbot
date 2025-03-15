@@ -16,7 +16,7 @@ if "OPENAI_API_KEY" not in os.environ:
 load_dotenv()
 
 # Set up the OpenAI LLM (using GPT-3.5-turbo; change to GPT-4 if desired)
-Settings.llm = OpenAI(model="gpt-3.5-turbo")
+Settings.llm = OpenAI(model="gpt-4")
 
 # Load the stored index built from your Athens events dataset
 storage_context = StorageContext.from_defaults(persist_dir="./athens_events_index")
