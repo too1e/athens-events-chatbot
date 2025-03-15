@@ -8,11 +8,11 @@ from llama_index.core import StorageContext, load_index_from_storage
 from llama_index.core.settings import Settings
 from llama_index.llms.openai import OpenAI
 
-# Set the API key explicitly from Streamlit secrets (ensure your secrets.toml includes your key)
+# Set the API key explicitly from Streamlit secrets (make sure your secrets.toml includes your key)
 if "OPENAI_API_KEY" not in os.environ:
     os.environ["OPENAI_API_KEY"] = st.secrets["general"]["OPENAI_API_KEY"]
 
-# Load environment variables from .env (optional, for local development)
+# Load environment variables from .env (optional, for local development) 
 load_dotenv()
 
 # Set up the OpenAI LLM (using GPT-4 in this version)
@@ -141,7 +141,7 @@ def determine_target_date(query, base_date):
         date_str = match.group(1)
         for fmt in ("%m/%d/%Y", "%m/%d/%y"):
             try:
-                return datetime.strptime(date_str, fmt)
+                return datetime.strptime(date_str, fmt).date()
             except ValueError:
                 continue
     if "weekend" in query_lower:
@@ -173,9 +173,8 @@ def build_dataset_context(query, target_date):
         df = filter_events(start_date=target_date, end_date=target_date)
         return format_events_simple_list(df)
 
-# --- Updated filter_events function (no .dt accessor needed) ---
+# --- Updated filter_events function (comparing dates directly) ---
 def filter_events(category=None, start_date=None, end_date=None, location_substring=None) -> pd.DataFrame:
-    """Return a DataFrame of events filtered by category, date range, etc."""
     df = events_df.copy()
     if category:
         df = df[df["Category"].fillna("").str.lower() == category.lower()]
@@ -191,18 +190,20 @@ def filter_events(category=None, start_date=None, end_date=None, location_substr
 # 4. MAIN APPLICATION LOGIC
 # -------------------------------------------------------------------
 
-current_date = datetime.today()
+# Use a date object for current_date
+current_date = datetime.today().date()
 today_str = current_date.strftime("%A, %B %d, %Y")
 
 # Pre-calculate weekend string using upcoming Saturday & Sunday
 weekday = current_date.weekday()
-this_saturday = current_date.date() + timedelta(days=(5 - weekday) % 7)
+this_saturday = current_date + timedelta(days=(5 - weekday) % 7)
 this_sunday = this_saturday + timedelta(days=1)
 weekend_str = f"{this_saturday.strftime('%A, %B %d, %Y')} to {this_sunday.strftime('%A, %B %d, %Y')}"
 
 if prompt := st.chat_input("Ask me about Athens events or plan a date:"):
-    # Intercept queries about "who made you" or "who created you"
     prompt_lower = prompt.lower()
+    
+    # Intercept queries about "who made you" or "who created you"
     if "who made you" in prompt_lower or "who created you" in prompt_lower:
         direct_response = "I was created by three MSBA students at UGA: Sam Toole, Aidan Downey, and Jacob Croskey."
         with st.chat_message("assistant"):
