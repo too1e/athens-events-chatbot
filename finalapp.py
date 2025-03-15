@@ -27,10 +27,10 @@ chat_engine = index.as_chat_engine(chat_mode="context")
 events_df = pd.read_excel("athens_events.xlsx")
 events_df["Date"] = pd.to_datetime(events_df["Date"])
 
-# Set the app title to "The Guide Dawg"
-st.title("The Guide Dawg")
+# Set the app title to "The Guide Dawg 🐾"
+st.title("The Guide Dawg 🐾")
 
-# Initialize session state for conversation history and last_target_date
+# Initialize conversation history and last_target_date in session state if not already present
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "last_target_date" not in st.session_state:
@@ -84,7 +84,7 @@ def get_events_for_category_and_date(category, target_date):
         context += f"• {row['Event']} on {event_date_str} at {time_str_formatted} at {row['Location']} — {price_str}\n"
     return context
 
-def get_category_events_for_date_range(category, start_date, end_date):
+def get_category_events_for_date_range_range(category, start_date, end_date):
     filtered = events_df[(events_df["Category"].str.lower() == category.lower()) &
                          (events_df["Date"].dt.date >= start_date.date()) &
                          (events_df["Date"].dt.date <= end_date.date())]
@@ -113,9 +113,41 @@ def get_events_for_date_range_range(start_date, end_date):
         context += f"• {row['Event']} on {event_date_str} at {time_str_formatted} at {row['Location']} — {price_str}\n"
     return context
 
+# New helper functions to group events by day over a date range.
+def get_grouped_events_for_date_range_range(start_date, end_date):
+    current = start_date
+    all_context = ""
+    while current <= end_date:
+        events = get_events_for_date_range(current)
+        day_str = current.strftime("%A, %B %d, %Y")
+        if events.startswith("No events"):
+            events_text = "No events."
+        else:
+            events_text = events
+        all_context += f"{day_str}:\n{events_text}\n"
+        current += timedelta(days=1)
+    return all_context
+
+def get_grouped_category_events_for_date_range(category, start_date, end_date):
+    current = start_date
+    all_context = ""
+    while current <= end_date:
+        events = get_events_for_category_and_date(category, current)
+        day_str = current.strftime("%A, %B %d, %Y")
+        if events.startswith(f"No {category}"):
+            events_text = "No events."
+        else:
+            events_text = events
+        all_context += f"{day_str}:\n{events_text}\n"
+        current += timedelta(days=1)
+    return all_context
+
 def determine_target_date(query, base_date):
     query_lower = query.lower()
-    # Reuse last target date if query includes "that day", "later", "other", or "that night"
+    # Explicit check for "tomorrow"
+    if "tomorrow" in query_lower:
+        return base_date + timedelta(days=1)
+    # Reuse last target date if query uses terms like "that day", "later", etc.
     if st.session_state.get("last_target_date") and any(term in query_lower for term in ["that day", "later", "other", "that night"]):
         return st.session_state["last_target_date"]
     if "next week" in query_lower:
@@ -142,17 +174,16 @@ def determine_target_date(query, base_date):
 
 def build_dataset_context(query, target_date):
     query_lower = query.lower()
-    # For range queries like "next week", build context for the entire week.
     if "next week" in query_lower:
         next_sunday = target_date + timedelta(days=6)
         if "karaoke" in query_lower:
-            return get_category_events_for_date_range("Karaoke & Open Mic", target_date, next_sunday)
+            return get_grouped_category_events_for_date_range("Karaoke & Open Mic", target_date, next_sunday)
         elif "music" in query_lower or "concert" in query_lower:
-            return get_category_events_for_date_range("Music", target_date, next_sunday)
+            return get_grouped_category_events_for_date_range("Music", target_date, next_sunday)
         elif "comedy" in query_lower:
-            return get_category_events_for_date_range("Comedy", target_date, next_sunday)
+            return get_grouped_category_events_for_date_range("Comedy", target_date, next_sunday)
         else:
-            return get_events_for_date_range_range(target_date, next_sunday)
+            return get_grouped_events_for_date_range_range(target_date, next_sunday)
     if "karaoke" in query_lower:
         return get_events_for_category_and_date("Karaoke & Open Mic", target_date)
     elif "music" in query_lower or "concert" in query_lower:
@@ -174,7 +205,7 @@ weekend_str = f"{this_saturday.strftime('%A, %B %d, %Y')} to {this_sunday.strfti
 
 if prompt := st.chat_input("Ask me about Athens events or plan a date:"):
     target_date = determine_target_date(prompt, current_date)
-    st.session_state["last_target_date"] = target_date  # Store for follow-ups
+    st.session_state["last_target_date"] = target_date
     dataset_context = build_dataset_context(prompt, target_date)
     
     query_lower = prompt.lower()
@@ -182,7 +213,7 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date:"):
         next_monday = current_date + timedelta(days=(7 - current_date.weekday()))
         next_sunday = next_monday + timedelta(days=6)
         date_context_text = f"for next week (Monday: {next_monday.strftime('%A, %B %d, %Y')} to Sunday: {next_sunday.strftime('%A, %B %d, %Y')})"
-    elif any(term in query_lower for term in ["saturday", "sunday", "that day", "later", "other", "that night"]):
+    elif any(term in query_lower for term in ["saturday", "sunday", "that day", "later", "other"]):
         date_context_text = f"for {target_date.strftime('%A, %B %d, %Y')}"
     elif "weekend" in query_lower:
         date_context_text = f"for the weekend (Saturday: {this_saturday.strftime('%A, %B %d, %Y')}, Sunday: {this_sunday.strftime('%A, %B %d, %Y')})"
@@ -193,10 +224,18 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date:"):
     
     custom_instructions = (
         f"Hey, it's {today_str} and we're in the Eastern Time Zone. {date_context_text}. "
-        "You're The Guide Dawg—your Athens events guru with access to the Athens events dataset. "
-        "When answering queries, please base your answer solely on the dataset provided below and arrange events in strict chronological order "
+        "You're The Guide Dawg 🐾—your chill, collegiate event and date planning assistant with access to the Athens events dataset. "
+        "When someone asks 'What are you?', say: 'I am The Guide Dawg, your go-to resource for local Athens events.' "
+        "If someone asks 'Who made you?' or 'Who created you?', say: 'I was created by three MSBA students at UGA: Sam Toole, Aidan Downey, and Jacob Croskey.' "
+        "When someone asks 'What is your purpose?', say: 'My purpose is to help UGA students and the broader Athens community easily discover local events, enriching the campus experience and fostering a vibrant, connected community.' "
+        "For queries that are purely informational—such as 'What's going on on this day?' or 'What all events are happening tomorrow?'—simply list all the events for that day without additional recommendations, organized by event type if possible. "
+        "If a query refers to 'this weekend', list events separately for Saturday and Sunday, indicating if one day has no events. "
+        "If a query mentions a specific location (e.g., 'What events are happening at The Foundry?'), list all events corresponding to that location from the dataset. "
+        "For 'next week' queries, provide a list of events grouped by day in chronological order. "
+        "For other queries, base your responses primarily on the dataset provided below and arrange events in strict chronological order "
         "(morning events first, then afternoon, then evening; use standard times like '8:00 AM'). "
-        "For date planning, select a curated itinerary (one or two events per time block) and blend them with creative suggestions. "
+        "Differentiate between providing a curated itinerary for date planning and simply listing events when the user wants to know what's happening. "
+        "However, if the query is casual or conversational (e.g., 'what's up', 'how's it going', 'whats going on'), respond naturally with a friendly greeting and creative flair. "
         "Below is the dataset context for the specified period:\n"
         f"{dataset_context}"
     )
