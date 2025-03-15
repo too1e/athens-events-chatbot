@@ -8,11 +8,11 @@ from llama_index.core import StorageContext, load_index_from_storage
 from llama_index.core.settings import Settings
 from llama_index.llms.openai import OpenAI
 
-# Set the API key explicitly from Streamlit secrets (make sure your secrets.toml includes your key)
+# Set the API key explicitly from Streamlit secrets (ensure your secrets.toml includes your key)
 if "OPENAI_API_KEY" not in os.environ:
     os.environ["OPENAI_API_KEY"] = st.secrets["general"]["OPENAI_API_KEY"]
 
-# Load environment variables from .env (optional, for local development) 
+# Load environment variables from .env (optional, for local development)
 load_dotenv()
 
 # Set up the OpenAI LLM (using GPT-4 in this version)
@@ -173,17 +173,14 @@ def build_dataset_context(query, target_date):
         df = filter_events(start_date=target_date, end_date=target_date)
         return format_events_simple_list(df)
 
-# NEW: Updated filter_events function with proper date comparison
+# --- Updated filter_events function (no .dt accessor needed) ---
 def filter_events(category=None, start_date=None, end_date=None, location_substring=None) -> pd.DataFrame:
     """Return a DataFrame of events filtered by category, date range, etc."""
     df = events_df.copy()
-    # Filter by category
     if category:
         df = df[df["Category"].fillna("").str.lower() == category.lower()]
-    # Filter by location substring
     if location_substring:
         df = df[df["Location"].fillna("").str.lower().str.contains(location_substring.lower())]
-    # Filter by date range (compare as dates)
     if start_date and end_date:
         df = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)]
     elif start_date:
@@ -191,7 +188,7 @@ def filter_events(category=None, start_date=None, end_date=None, location_substr
     return df
 
 # -------------------------------------------------------------------
-# 3. MAIN APPLICATION LOGIC
+# 4. MAIN APPLICATION LOGIC
 # -------------------------------------------------------------------
 
 current_date = datetime.today()
@@ -250,7 +247,7 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date:"):
         "For purely informational queries, simply list the events in chronological order. "
         "If a query refers to 'this weekend', show events for Saturday & Sunday. "
         "If a query mentions a specific location, list those events. "
-        "For 'next week' queries, group events by day. "
+        "For 'next week' queries, group events by day in chronological order. "
         "If asked to plan a date, propose a creative itinerary using some events from the dataset and supplement with your own recommendations. "
         "Avoid always starting with the same template—be imaginative and original. "
         f"{extra_date_instructions}\n\n"
