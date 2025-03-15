@@ -215,11 +215,16 @@ def build_dataset_context(query, target_date):
         else:
             return get_grouped_events_for_date_range_range(target_date, next_sunday)
     # NEW branch: if query contains "weekend", get events for both Saturday and Sunday.
-    elif "weekend" in query_lower:
-        saturday = target_date
-        sunday = saturday + timedelta(days=1)
-        df = filter_events(start_date=saturday, end_date=sunday)
-        return format_events_simple_list(df)
+    if "weekend" in prompt_lower:
+        saturday, sunday = get_next_weekend()
+        dataset_context = format_events_simple_list(filter_events(start_date=saturday, end_date=sunday))
+        date_context_text = f"for the weekend (Saturday: {saturday.strftime('%A, %B %d, %Y')}, Sunday: {sunday.strftime('%A, %B %d, %Y')})"
+    else:
+        target_date = determine_target_date(prompt, current_date)
+        st.session_state["last_target_date"] = target_date
+        dataset_context = build_dataset_context(prompt, target_date)
+        date_context_text = f"for {target_date.strftime('%A, %B %d, %Y')}"
+
     if "karaoke" in query_lower:
         df = filter_events(category="Karaoke & Open Mic", start_date=target_date, end_date=target_date)
         return format_events_simple_list(df)
