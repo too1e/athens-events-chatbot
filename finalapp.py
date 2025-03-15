@@ -12,7 +12,7 @@ from llama_index.llms.openai import OpenAI
 # 1. SETUP AND INITIALIZATION
 # -------------------------------------------------------------------
 
-# Set the API key explicitly from Streamlit secrets
+# Set the API key explicitly from Streamlit secrets (ensure your secrets.toml includes your key)
 if "OPENAI_API_KEY" not in os.environ:
     os.environ["OPENAI_API_KEY"] = st.secrets["general"]["OPENAI_API_KEY"]
 
@@ -232,12 +232,16 @@ def build_dataset_context(query, target_date):
         else:
             return get_grouped_events_for_date_range_range(target_date, next_sunday)
     elif "weekend" in query_lower:
-        # Explicitly build context for weekend: both Saturday and Sunday.
-        saturday = target_date
-        sunday = saturday + timedelta(days=1)
-        df = filter_events(start_date=saturday, end_date=sunday)
-        return format_events_simple_list(df)
-    if "karaoke" in query_lower:
+        # Explicitly build context for both Saturday and Sunday.
+        saturday, sunday = get_next_weekend()
+        saturday_events = get_events_for_date_range(saturday)
+        sunday_events = get_events_for_date_range(sunday)
+        context = (
+            f"{saturday.strftime('%A, %B %d, %Y')}:\n{saturday_events}\n\n"
+            f"{sunday.strftime('%A, %B %d, %Y')}:\n{sunday_events}"
+        )
+        return context
+    elif "karaoke" in query_lower:
         df = filter_events(category="Karaoke & Open Mic", start_date=target_date, end_date=target_date)
         return format_events_simple_list(df)
     elif "music" in query_lower or "concert" in query_lower:
