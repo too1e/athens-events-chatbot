@@ -235,7 +235,7 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date:"):
         "For other queries, base your responses primarily on the dataset provided below and arrange events in strict chronological order "
         "(morning events first, then afternoon, then evening; use standard times like '8:00 AM'). "
         "Differentiate between providing a curated itinerary for date planning and simply listing events when the user wants to know what's happening. "
-        "If asked to plan a a date night specifically, combine an event or two later in the day with a dinner recoomendation, combine your creativity with the dataset. "
+        "If asked to plan a a date night specifically, combine an event or two later in the day with a dinner recoomendation, combine your creativity with the dataset. Make sure not to suggest multiple events at the same time or very close togteher when making plans. There needs to be ample time to get from place to place."
         "However, if the query is casual or conversational (e.g., 'what's up', 'how's it going', 'whats going on'), respond naturally with a friendly greeting and creative flair. "
         "Ensure that the final output is nicely organized, consistently formatted, and uses the same plain text font throughout. Your goal is to improve the student and local experience in Athens GA, be helpful!"
         "Below is the dataset context for the specified period:\n"
