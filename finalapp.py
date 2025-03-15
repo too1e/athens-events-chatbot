@@ -40,7 +40,7 @@ if "messages" not in st.session_state:
 if "last_target_date" not in st.session_state:
     st.session_state.last_target_date = None
 
-# Display conversation history
+# Display previous conversation messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
@@ -98,7 +98,6 @@ def group_events_by_day(df: pd.DataFrame) -> str:
         grouped_text += bullet_line + "\n"
     return grouped_text.strip()
 
-# Single definition of filter_events (dates are plain dates, so no .dt needed)
 def filter_events(category=None, start_date=None, end_date=None, location_substring=None) -> pd.DataFrame:
     """Return a DataFrame of events filtered by category, date range, etc."""
     df = events_df.copy()
@@ -111,6 +110,24 @@ def filter_events(category=None, start_date=None, end_date=None, location_substr
     elif start_date:
         df = df[df["Date"] == start_date]
     return df
+
+def get_next_week_range():
+    """Return next Monday through next Sunday."""
+    today = datetime.today().date()
+    days_until_monday = (7 - today.weekday()) % 7
+    if days_until_monday == 0:
+        days_until_monday = 7
+    next_monday = today + timedelta(days=days_until_monday)
+    next_sunday = next_monday + timedelta(days=6)
+    return next_monday, next_sunday
+
+def get_next_weekend():
+    """Return the upcoming Saturday and Sunday."""
+    today = datetime.today().date()
+    days_until_saturday = (5 - today.weekday()) % 7
+    saturday = today + timedelta(days=days_until_saturday)
+    sunday = saturday + timedelta(days=1)
+    return saturday, sunday
 
 def get_grouped_events_for_date_range_range(start_date, end_date):
     current = start_date
@@ -214,17 +231,12 @@ def build_dataset_context(query, target_date):
             return get_grouped_category_events_for_date_range("Comedy", target_date, next_sunday)
         else:
             return get_grouped_events_for_date_range_range(target_date, next_sunday)
-    # NEW branch: if query contains "weekend", get events for both Saturday and Sunday.
-    if "weekend" in prompt_lower:
-        saturday, sunday = get_next_weekend()
-        dataset_context = format_events_simple_list(filter_events(start_date=saturday, end_date=sunday))
-        date_context_text = f"for the weekend (Saturday: {saturday.strftime('%A, %B %d, %Y')}, Sunday: {sunday.strftime('%A, %B %d, %Y')})"
-    else:
-        target_date = determine_target_date(prompt, current_date)
-        st.session_state["last_target_date"] = target_date
-        dataset_context = build_dataset_context(prompt, target_date)
-        date_context_text = f"for {target_date.strftime('%A, %B %d, %Y')}"
-
+    elif "weekend" in query_lower:
+        # Explicitly build context for weekend: both Saturday and Sunday.
+        saturday = target_date
+        sunday = saturday + timedelta(days=1)
+        df = filter_events(start_date=saturday, end_date=sunday)
+        return format_events_simple_list(df)
     if "karaoke" in query_lower:
         df = filter_events(category="Karaoke & Open Mic", start_date=target_date, end_date=target_date)
         return format_events_simple_list(df)
