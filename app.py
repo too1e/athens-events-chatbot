@@ -7,6 +7,9 @@ import pandas as pd
 from llama_index.core import StorageContext, load_index_from_storage
 from llama_index.core.settings import Settings
 from llama_index.llms.openai import OpenAI
+import pytz
+tz = pytz.timezone('America/New_York')
+
 
 # Set the API key explicitly from Streamlit secrets (make sure your secrets.toml includes your key)
 if "OPENAI_API_KEY" not in os.environ:
@@ -135,7 +138,7 @@ def filter_events(category=None, start_date=None, end_date=None, location_substr
 
 def get_next_week_range():
     """Return next Monday -> next Sunday."""
-    today = datetime.today().date()
+    today = datetime.now(tz).date()
     days_until_monday = (7 - today.weekday()) % 7
     if days_until_monday == 0:
         days_until_monday = 7
@@ -145,26 +148,26 @@ def get_next_week_range():
 
 def get_next_weekend():
     """Return the upcoming Saturday & Sunday."""
-    today = datetime.today().date()
+    today = datetime.now(tz).date()
     days_until_saturday = (5 - today.weekday()) % 7
-    saturday = today + timedelta(days_until_saturday)
+    saturday = today + timedelta(days=days_until_saturday)
     sunday = saturday + timedelta(days=1)
     return saturday, sunday
 
 def parse_day_of_week(prompt_text: str):
     """
     Looks for 'tomorrow' or day names like 'monday', 'tuesday', etc. in the prompt
-    and returns a date object for the *next* occurrence of that day.
+    and returns a date object for the next occurrence of that day.
     """
     prompt_lower = prompt_text.lower()
-    today = datetime.today().date()
+    today = datetime.now(tz).date()
 
-    # 1. Check if the user said "tomorrow"
+    # Check if the user said "tomorrow"
     if "tomorrow" in prompt_lower:
         return today + timedelta(days=1)
 
-    # 2. Check for day names
-    days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
+    # Check for day names
+    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
     for i, day in enumerate(days):
         if day in prompt_lower:
             day_diff = (i - today.weekday()) % 7
@@ -172,8 +175,8 @@ def parse_day_of_week(prompt_text: str):
                 day_diff = 7
             return today + timedelta(days=day_diff)
 
-    # 3. If none found, return None
     return None
+
 
 # -------------------------------------------------------------------
 # 3. MAIN STREAMLIT APP LOGIC
