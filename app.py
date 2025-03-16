@@ -153,18 +153,26 @@ def get_next_weekend():
 
 def parse_day_of_week(prompt_text: str):
     """
-    Looks for day names like 'monday', 'tuesday', etc. in the prompt
+    Looks for 'tomorrow' or day names like 'monday', 'tuesday', etc. in the prompt
     and returns a date object for the *next* occurrence of that day.
     """
     prompt_lower = prompt_text.lower()
-    days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
     today = datetime.today().date()
+
+    # 1. Check if the user said "tomorrow"
+    if "tomorrow" in prompt_lower:
+        return today + timedelta(days=1)
+
+    # 2. Check for day names
+    days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
     for i, day in enumerate(days):
         if day in prompt_lower:
             day_diff = (i - today.weekday()) % 7
             if day_diff == 0:
                 day_diff = 7
             return today + timedelta(days=day_diff)
+
+    # 3. If none found, return None
     return None
 
 # -------------------------------------------------------------------
