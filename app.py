@@ -8,14 +8,14 @@ from llama_index.core import StorageContext, load_index_from_storage
 from llama_index.core.settings import Settings
 from llama_index.llms.openai import OpenAI
 import pytz
-tz = pytz.timezone('America/New_York')
 
+tz = pytz.timezone('America/New_York')
 
 # Set the API key explicitly from Streamlit secrets (make sure your secrets.toml includes your key)
 if "OPENAI_API_KEY" not in os.environ:
     os.environ["OPENAI_API_KEY"] = st.secrets["general"]["OPENAI_API_KEY"]
 
-# Load environment variables from .env (optional, for local development) 
+# Load environment variables from .env (optional, for local development)
 load_dotenv()
 
 # Set up the OpenAI LLM (using GPT-3.5-turbo; change to GPT-4 if desired)
@@ -177,7 +177,6 @@ def parse_day_of_week(prompt_text: str):
 
     return None
 
-
 # -------------------------------------------------------------------
 # 3. MAIN STREAMLIT APP LOGIC
 # -------------------------------------------------------------------
@@ -193,7 +192,6 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
     # 3A. Special check: "who made you" or "who created you"
     #    We'll intercept and respond exactly, skipping the LLM.
     if "who made you" in prompt_lower or "who created you" in prompt_lower:
-        # Direct short answer
         direct_response = "I was created by three MSBA students at UGA: Sam Toole, Aidan Downey, and Jacob Croskey."
         with st.chat_message("assistant"):
             st.markdown(direct_response)
@@ -203,17 +201,44 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
     # Also define wants_date_plan
     wants_date_plan = ("plan a date" in prompt_lower or "date night" in prompt_lower)
 
-    # Now handle the rest of queries
+    # Handle date and event queries
     if "what is today" in prompt_lower:
         today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
         response_text = f"Today is {today_str}!"
         with st.chat_message("assistant"):
             st.markdown(response_text)
-            st.session_state.messages.append({"role": "assistant", "content":response_text})
+            st.session_state.messages.append({"role": "assistant", "content": response_text})
+        st.stop()
+
+    elif "happening today" in prompt_lower or "going on today" in prompt_lower:
+        today_date = datetime.now(tz).date()
+        df_today = filter_events(start_date=today_date, end_date=today_date)
+        events_text = format_events_simple_list(df_today)
+        response_text = (
+            f"Today, on {datetime.now(tz).strftime('%A, %B %d, %Y')}, in Athens, the following events are happening:\n\n"
+            f"{events_text}"
+        )
+        with st.chat_message("assistant"):
+            st.markdown(response_text)
+            st.session_state.messages.append({"role": "assistant", "content": response_text})
+        st.stop()
+
+    elif "tonight" in prompt_lower:
+        # For 'tonight', we assume it's still today's events.
+        # Optionally, you can add time-based filtering if desired.
+        today_date = datetime.now(tz).date()
+        df_tonight = filter_events(start_date=today_date, end_date=today_date)
+        events_text = format_events_simple_list(df_tonight)
+        response_text = (
+            f"Tonight, on {datetime.now(tz).strftime('%A, %B %d, %Y')}, in Athens, the following events are happening:\n\n"
+            f"{events_text}"
+        )
+        with st.chat_message("assistant"):
+            st.markdown(response_text)
+            st.session_state.messages.append({"role": "assistant", "content": response_text})
         st.stop()
 
     elif "next week" in prompt_lower:
-        # Check for category
         category = None
         if "music" in prompt_lower:
             category = "Music"
