@@ -309,6 +309,11 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
         f"{dataset_context}"
     )
 
+        # Truncate the dataset context to avoid exceeding token limit
+    MAX_CONTEXT_CHARS = 6000
+    if len(dataset_context) > MAX_CONTEXT_CHARS:
+        dataset_context = dataset_context[:MAX_CONTEXT_CHARS] + "\n...(truncated to avoid token overflow)"
+
     final_query = (
         f"{custom_instructions}\n\n"
         f"User's prompt: {prompt}\n\n"
@@ -321,4 +326,6 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
     # Show the assistant's message
     with st.chat_message("assistant"):
         st.markdown(llm_response)
+        st.session_state.messages.append({"role": "assistant", "content": llm_response})
+
         st.session_state.messages.append({"role": "assistant", "content": llm_response})
