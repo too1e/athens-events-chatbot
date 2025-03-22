@@ -260,7 +260,7 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
             # If user wants a date plan
             day_date = parse_day_of_week(prompt)
             if not day_date:
-                day_date = datetime.today().date() + timedelta(days=1)
+                day_date = datetime.now(tz).date() + timedelta(days=1)
             df_day = filter_events(category=category, start_date=day_date, end_date=day_date, location_substring=location_substring)
             events_text = format_events_simple_list(df_day)
             date_str = day_date.strftime("%A, %B %d, %Y")
