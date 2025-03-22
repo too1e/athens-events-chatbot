@@ -205,7 +205,7 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
 
     # Now handle the rest of queries
     if "what is today" in prompt_lower:
-        today_str = datetime.today().strftime("%A, %B %d, %Y")
+        today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
         response_text = f"Today is {today_str}!"
         with st.chat_message("assistant"):
             st.markdown(response_text)
@@ -278,7 +278,7 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
     # 4. CUSTOM INSTRUCTIONS FOR THE LLM
     # ----------------------------------------------------------------
 
-    today_str = datetime.today().strftime("%A, %B %d, %Y")
+    today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
     date_context_text = "Based on your query"
 
     extra_date_instructions = ""
