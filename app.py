@@ -10,7 +10,6 @@ from llama_index.llms.openai import OpenAI
 import pytz
 tz = pytz.timezone('America/New_York')
 
-
 # Set the API key explicitly from Streamlit secrets (make sure your secrets.toml includes your key)
 if "OPENAI_API_KEY" not in os.environ:
     os.environ["OPENAI_API_KEY"] = st.secrets["general"]["OPENAI_API_KEY"]
@@ -28,29 +27,20 @@ chat_engine = index.as_chat_engine(chat_mode="context")
 
 # Load and parse events data
 events_df = pd.read_excel("athens_events.xlsx")
-# Convert "Date" to just a date (not a timestamp)
 events_df["Date"] = pd.to_datetime(events_df["Date"], errors="coerce").dt.date
 
-# Set up app title
 st.title("The Guide Dawg 🐾")
 
-# Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "last_target_date" not in st.session_state:
     st.session_state.last_target_date = None
 
-# Display conversation history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# -------------------------------------------------------------------
-# 2. HELPER FUNCTIONS
-# -------------------------------------------------------------------
-
 def format_time_str(time_val):
-    """Safely convert a 'Time' value to a 12-hour format string like '8:00 AM'."""
     if pd.isnull(time_val):
         return ""
     try:
@@ -59,7 +49,6 @@ def format_time_str(time_val):
         return str(time_val)
 
 def format_events_simple_list(df: pd.DataFrame) -> str:
-    """Return a bullet list of events in chronological order."""
     if df.empty:
         return "_No events found._"
     df = df.sort_values(["Date","Time"])
@@ -67,8 +56,6 @@ def format_events_simple_list(df: pd.DataFrame) -> str:
     for _, row in df.iterrows():
         date_str = row["Date"].strftime("%A, %B %d, %Y") if row["Date"] else ""
         time_str = format_time_str(row["Time"])
-        
-        # Format price
         price_val = row.get("Price", 0)
         if pd.notnull(price_val):
             try:
@@ -78,20 +65,16 @@ def format_events_simple_list(df: pd.DataFrame) -> str:
                 price_str = str(price_val)
         else:
             price_str = "Free"
-
         line = f"- {row['Event']} on {date_str} at {time_str} @ {row['Location']} ({price_str})"
         lines.append(line)
     return "\n".join(lines)
 
 def group_events_by_day(df: pd.DataFrame) -> str:
-    """Group events by Date, with bold headings per day."""
     if df.empty:
         return "_No events found._"
-    
     df = df.sort_values(["Date", "Time"])
     grouped_text = ""
     current_day = None
-
     for _, row in df.iterrows():
         day_date = row["Date"]
         if day_date != current_day:
@@ -100,7 +83,6 @@ def group_events_by_day(df: pd.DataFrame) -> str:
             day_str = day_date.strftime("%A, %B %d, %Y")
             grouped_text += f"**{day_str}**\n"
             current_day = day_date
-        
         time_str = format_time_str(row["Time"])
         price_val = row.get("Price", 0)
         if pd.notnull(price_val):
@@ -111,33 +93,23 @@ def group_events_by_day(df: pd.DataFrame) -> str:
                 price_str = str(price_val)
         else:
             price_str = "Free"
-        
         bullet_line = f"- {row['Event']} at {time_str} @ {row['Location']} ({price_str})"
         grouped_text += bullet_line + "\n"
-    
     return grouped_text.strip()
 
 def filter_events(category=None, start_date=None, end_date=None, location_substring=None) -> pd.DataFrame:
-    """Return a DataFrame of events filtered by category, date range, etc."""
     df = events_df.copy()
-    # Filter by category
     if category:
         df = df[df["Category"].fillna("").str.lower() == category.lower()]
-
-    # Filter by location substring
     if location_substring:
         df = df[df["Location"].fillna("").str.lower().str.contains(location_substring.lower())]
-    
-    # Filter by date range
     if start_date and end_date:
         df = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)]
     elif start_date:
         df = df[df["Date"] == start_date]
-    
     return df
 
 def get_next_week_range():
-    """Return next Monday -> next Sunday."""
     today = datetime.now(tz).date()
     days_until_monday = (7 - today.weekday()) % 7
     if days_until_monday == 0:
@@ -147,7 +119,6 @@ def get_next_week_range():
     return next_monday, next_sunday
 
 def get_next_weekend():
-    """Return the upcoming Saturday & Sunday."""
     today = datetime.now(tz).date()
     days_until_saturday = (5 - today.weekday()) % 7
     saturday = today + timedelta(days=days_until_saturday)
@@ -155,18 +126,10 @@ def get_next_weekend():
     return saturday, sunday
 
 def parse_day_of_week(prompt_text: str):
-    """
-    Looks for 'tomorrow' or day names like 'monday', 'tuesday', etc. in the prompt
-    and returns a date object for the next occurrence of that day.
-    """
     prompt_lower = prompt_text.lower()
     today = datetime.now(tz).date()
-
-    # Check if the user said "tomorrow"
     if "tomorrow" in prompt_lower:
         return today + timedelta(days=1)
-
-    # Check for day names
     days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
     for i, day in enumerate(days):
         if day in prompt_lower:
@@ -174,36 +137,23 @@ def parse_day_of_week(prompt_text: str):
             if day_diff == 0:
                 day_diff = 7
             return today + timedelta(days=day_diff)
-
     return None
 
-
-# -------------------------------------------------------------------
-# 3. MAIN STREAMLIT APP LOGIC
-# -------------------------------------------------------------------
-
 if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
-    # Show user's message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     prompt_lower = prompt.lower()
-
-    # 3A. Special check: "who made you" or "who created you"
-    #    We'll intercept and respond exactly, skipping the LLM.
     if "who made you" in prompt_lower or "who created you" in prompt_lower:
-        # Direct short answer
         direct_response = "I was created by three MSBA students at UGA: Sam Toole, Aidan Downey, and Jacob Croskey."
         with st.chat_message("assistant"):
             st.markdown(direct_response)
             st.session_state.messages.append({"role": "assistant", "content": direct_response})
         st.stop()
 
-    # Also define wants_date_plan
     wants_date_plan = ("plan a date" in prompt_lower or "date night" in prompt_lower)
 
-    # Now handle the rest of queries
     if "what is today" in prompt_lower:
         today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
         response_text = f"Today is {today_str}!"
@@ -213,7 +163,6 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
         st.stop()
 
     elif "next week" in prompt_lower:
-        # Check for category
         category = None
         if "music" in prompt_lower:
             category = "Music"
@@ -221,11 +170,13 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
             category = "Comedy"
         elif "karaoke" in prompt_lower:
             category = "Karaoke & Open Mic"
-        
+
         next_monday, next_sunday = get_next_week_range()
         df_next_week = filter_events(category=category, start_date=next_monday, end_date=next_sunday)
         events_text = group_events_by_day(df_next_week)
-        dataset_context = f"Events for next week (Monday {next_monday} -> Sunday {next_sunday}):\n\n{events_text}"
+        event_lines = events_text.splitlines()
+        trimmed_events_text = "\n".join(event_lines[:40])
+        dataset_context = f"Events for next week (Monday {next_monday} -> Sunday {next_sunday}):\n\n{trimmed_events_text}"
 
     elif "weekend" in prompt_lower:
         category = None
@@ -235,14 +186,15 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
             category = "Comedy"
         elif "karaoke" in prompt_lower:
             category = "Karaoke & Open Mic"
-        
+
         sat, sun = get_next_weekend()
         df_weekend = filter_events(category=category, start_date=sat, end_date=sun)
         events_text = group_events_by_day(df_weekend)
-        dataset_context = f"This weekend (Saturday {sat} & Sunday {sun}):\n\n{events_text}"
+        event_lines = events_text.splitlines()
+        trimmed_events_text = "\n".join(event_lines[:40])
+        dataset_context = f"This weekend (Saturday {sat} & Sunday {sun}):\n\n{trimmed_events_text}"
 
     else:
-        # Possibly location filter or date plan
         category = None
         if "music" in prompt_lower:
             category = "Music"
@@ -257,26 +209,22 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
             location_substring = location_match.group(1).strip()
 
         if wants_date_plan:
-            # If user wants a date plan
             day_date = parse_day_of_week(prompt)
             if not day_date:
                 day_date = datetime.today().date() + timedelta(days=1)
             df_day = filter_events(category=category, start_date=day_date, end_date=day_date, location_substring=location_substring)
             events_text = format_events_simple_list(df_day)
+            trimmed_events_text = "\n".join(events_text.splitlines()[:40])
             date_str = day_date.strftime("%A, %B %d, %Y")
             dataset_context = (
                 f"You want a creative date plan for {date_str}.\n\n"
-                f"Below is a list of events happening that day:\n\n{events_text}"
+                f"Below is a list of events happening that day:\n\n{trimmed_events_text}"
             )
         else:
-            # Just listing events
             df_upcoming = filter_events(category=category, location_substring=location_substring)
             events_text = format_events_simple_list(df_upcoming)
-            dataset_context = f"Here are the upcoming events:\n\n{events_text}"
-
-    # ----------------------------------------------------------------
-    # 4. CUSTOM INSTRUCTIONS FOR THE LLM
-    # ----------------------------------------------------------------
+            trimmed_events_text = "\n".join(events_text.splitlines()[:40])
+            dataset_context = f"Here are the upcoming events:\n\n{trimmed_events_text}"
 
     today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
     date_context_text = "Based on your query"
@@ -315,10 +263,8 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
         "Assistant:"
     )
 
-    # Call the llama_index chat engine
     llm_response = chat_engine.chat(final_query)
 
-    # Show the assistant's message
     with st.chat_message("assistant"):
         st.markdown(llm_response)
         st.session_state.messages.append({"role": "assistant", "content": llm_response})
