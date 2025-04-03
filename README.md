@@ -6,7 +6,7 @@ This project is a chatbot designed to provide UGA students and residents in Athe
 
 - **Event Information**: Get details on local events, including dates, times, and locations.
 - **Concert Listings**: Discover upcoming concerts and performances in the Athens area.
-- **Deal Updates**: Find information about local deals and promotions.
+- **Date Planning**: Automatically plan dates and other outings in Athens.
 
 ## Requirements
 
