@@ -10,7 +10,7 @@ from llama_index.llms.openai import OpenAI
 import pytz
 
 # 🛠 Fix PermissionError by setting a custom tiktoken cache directory
-os.environ["TIKTOKEN_CACHE_DIR"] = "/home/adminuser/.cache/tiktoken"
+os.environ["TIKTOKEN_CACHE_DIR"] = "./tiktoken_cache"
 
 # Ensure timezone is set
 tz = pytz.timezone('America/New_York')
