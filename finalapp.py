@@ -22,7 +22,7 @@ if "OPENAI_API_KEY" not in os.environ:
 # Load environment variables from .env (optional, for local development) 
 load_dotenv()
 
-# Set up the OpenAI LLM 
+# Set up the OpenAI LLM (using GPT-3.5-turbo; change to GPT-4 if desired)
 Settings.llm = OpenAI(model="gpt-4")
 
 # Load the stored index and create chat engine
@@ -237,12 +237,10 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
     extra_date_instructions = ""
     if wants_date_plan:
         extra_date_instructions = (
-            "The user wants a creative date plan. Choose 3–5 events from the dataset and organize them "
-            "in a logical order throughout the day. Do not suggest multiple events at the same time. "
-            "Leave realistic time gaps between activities, and avoid back-to-back scheduling unless appropriate. "
-            "Include a dinner recommendation from your knowledge of Athens — one restaurant only. "
-            "Write in a fun, friendly tone and guide the user through the day like an itinerary. "
-            "Add transitions or commentary between activities to make it feel like a planned experience."
+            "The user wants a creative date plan. Avoid labeling it as 'morning/afternoon/evening'—"
+            "just choose a few interesting events from the dataset and propose a unique itinerary. "
+            "Feel free to add a dinner suggestion from your internal knowledge. "
+            "Add fun transitions or commentary—be imaginative!"
         )
 
     custom_instructions = (
