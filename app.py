@@ -8,6 +8,11 @@ from llama_index.core import StorageContext, load_index_from_storage
 from llama_index.core.settings import Settings
 from llama_index.llms.openai import OpenAI
 import pytz
+
+# 🛠 Fix PermissionError by setting a custom tiktoken cache directory
+os.environ["TIKTOKEN_CACHE_DIR"] = "/home/adminuser/.cache/tiktoken"
+
+# Ensure timezone is set
 tz = pytz.timezone('America/New_York')
 
 # Set the API key explicitly from Streamlit secrets (make sure your secrets.toml includes your key)
@@ -159,7 +164,7 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
         response_text = f"Today is {today_str}!"
         with st.chat_message("assistant"):
             st.markdown(response_text)
-            st.session_state.messages.append({"role": "assistant", "content":response_text})
+            st.session_state.messages.append({"role": "assistant", "content": response_text})
         st.stop()
 
     elif "next week" in prompt_lower:
