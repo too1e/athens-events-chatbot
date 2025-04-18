@@ -1,5 +1,9 @@
 import streamlit as st
 import os
+
+# ✅ Prevent tokenizer permission error
+os.environ["TIKTOKEN_CACHE_DIR"] = "./tiktoken_cache"
+
 from datetime import datetime, timedelta
 import re
 from dotenv import load_dotenv
