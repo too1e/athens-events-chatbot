@@ -166,12 +166,12 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
     wants_date_plan = ("plan a date" in prompt_lower or "date night" in prompt_lower)
 
     if "what is today" in prompt_lower:
-    today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
-    response_text = f"Today is {today_str}!"
-    with st.chat_message("assistant"):
-        st.markdown(response_text)
-        st.session_state.messages.append({"role": "assistant", "content": response_text})
-    st.stop()
+        today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
+        response_text = f"Today is {today_str}!"
+        with st.chat_message("assistant"):
+            st.markdown(response_text)
+            st.session_state.messages.append({"role": "assistant", "content": response_text})
+        st.stop()
 
 elif "this week" in prompt_lower:
     start_date, end_date = get_this_week_range()
