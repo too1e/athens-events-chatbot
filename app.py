@@ -244,7 +244,7 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
         )
 
     custom_instructions = (
-        f"Hey, it's {today_str} and we're in the Eastern Time Zone. {date_context_text}. "
+        "Hey, it's {today_str} and we're in the Eastern Time Zone. {date_context_text}. "
         "You're The Winterville Guide —a chill, collegiate event and date planning assistant with access to the Winterville events dataset. "
         "When someone asks 'What are you?', you may respond with a friendly greeting and mention that you're The Winterville Guide. "
         "If asked 'What is your purpose?', say: 'My purpose is to help Winterville residents and the broader community easily discover local events.' "
