@@ -206,36 +206,7 @@ else:
     events_text = format_events_simple_list(df)
     dataset_context = f"Here are upcoming events that match your query:\n\n{events_text}"
 
-        if wants_date_plan:
-            day_date = parse_day_of_week(prompt)
-            if not day_date:
-                day_date = datetime.today().date() + timedelta(days=1)
-            df_day = filter_events(category=category, start_date=day_date, end_date=day_date, location_substring=location_substring)
-            events_text = format_events_simple_list(df_day)
-            trimmed_events_text = "\n".join(events_text.splitlines()[:40])
-            date_str = day_date.strftime("%A, %B %d, %Y")
-            dataset_context = (
-                f"You want a creative date plan for {date_str}.\n\n"
-                f"Below is a list of events happening that day:\n\n{trimmed_events_text}"
-            )
-        else:
-            df_upcoming = filter_events(category=category, location_substring=location_substring)
-            events_text = format_events_simple_list(df_upcoming)
-            trimmed_events_text = "\n".join(events_text.splitlines()[:40])
-            dataset_context = f"Here are the upcoming events:\n\n{trimmed_events_text}"
-
-    today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
-    date_context_text = "Based on your query"
-
-    extra_date_instructions = ""
-    if wants_date_plan:
-        extra_date_instructions = (
-            "The user wants a creative date plan. Avoid labeling it as 'morning/afternoon/evening'—"
-            "just choose a few interesting events from the dataset and propose a unique itinerary. "
-            "Feel free to add a dinner suggestion from your internal knowledge. "
-            "Add fun transitions or commentary—be imaginative!"
-        )
-
+        
     custom_instructions = (
         f"Hey, it's {today_str} and we're in the Eastern Time Zone. {date_context_text}. "
         "You're The Winterville Guide —a chill, collegiate event and date planning assistant with access to the Winterville events dataset. "
