@@ -123,6 +123,12 @@ def get_next_week_range():
     next_sunday = next_monday + timedelta(days=6)
     return next_monday, next_sunday
 
+def get_this_week_range():
+    today = datetime.now(tz).date()
+    start_of_week = today - timedelta(days=today.weekday())  # Monday
+    end_of_week = start_of_week + timedelta(days=6)          # Sunday
+    return start_of_week, end_of_week
+
 def get_next_weekend():
     today = datetime.now(tz).date()
     days_until_saturday = (5 - today.weekday()) % 7
@@ -166,6 +172,29 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
             st.markdown(response_text)
             st.session_state.messages.append({"role": "assistant", "content": response_text})
         st.stop()
+
+elif "this week" in prompt_lower:
+    category = None
+    if "music" in prompt_lower:
+        category = "Music"
+    elif "comedy" in prompt_lower:
+        category = "Comedy"
+    elif "karaoke" in prompt_lower:
+        category = "Karaoke & Open Mic"
+
+    def get_this_week_range():
+        today = datetime.now(tz).date()
+        start_of_week = today - timedelta(days=today.weekday())  # Monday
+        end_of_week = start_of_week + timedelta(days=6)          # Sunday
+        return start_of_week, end_of_week
+
+    start_date, end_date = get_this_week_range()
+    df_this_week = filter_events(category=category, start_date=start_date, end_date=end_date)
+    events_text = group_events_by_day(df_this_week)
+    event_lines = events_text.splitlines()
+    trimmed_events_text = "\n".join(event_lines[:40])
+    dataset_context = f"Events for this week (Monday {start_date} → Sunday {end_date}):\n\n{trimmed_events_text}"
+
 
     elif "next week" in prompt_lower:
         category = None
