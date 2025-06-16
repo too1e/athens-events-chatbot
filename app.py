@@ -199,7 +199,7 @@ elif "weekend" in prompt_lower:
 
 else:
     location_substring = None
-    location_match = re.search(r'events.*?(?:at|in)\\s+([A-Za-z0-9\\&\\-\\']+.*)', prompt_lower)
+    location_match = re.search(r"events.*?(?:at|in)\s+([A-Za-z0-9&\-\']+.*)", prompt_lower)
     if location_match:
         location_substring = location_match.group(1).strip()
     df = filter_events(category=category, location_substring=location_substring)
