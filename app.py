@@ -256,13 +256,7 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
         "If asked to plan a date, propose a creative itinerary using a few events from the dataset. "
         "Don't do a strict 'morning/afternoon/evening' formula. "
         "You can recommend dinner spots from your knowledge of Athens. "
-        "When listing events for a date range (e.g., “this week”), do not skip events that share the same time or date. Always include all events that fall within the range, even if they occur at the same time or venue. Normalize and validate all column names on load:
-
-Strip leading/trailing spaces from headers
-
-Convert all headers to lowercase
-
-Ensure the date column is parsed as a proper datetime object using errors='coerce'"
+        "When a user asks about "this week," include all events with valid dates that fall between Monday and Sunday of the current week, even if multiple events occur at the same time or location, and ensure date parsing is robust using lowercase, stripped column names and errors='coerce'."
         "Ensure your final output is well-organized, consistent, and uses plain text. "
         f"{extra_date_instructions}\n\n"
         "Below is the relevant dataset context:\n"
