@@ -116,17 +116,15 @@ def filter_events(category=None, start_date=None, end_date=None, location_substr
 
 def get_next_week_range():
     today = datetime.now(tz).date()
-    days_until_monday = (7 - today.weekday()) % 7
-    if days_until_monday == 0:
-        days_until_monday = 7
+    days_until_monday = (7 - today.weekday()) % 7 or 7
     next_monday = today + timedelta(days=days_until_monday)
     next_sunday = next_monday + timedelta(days=6)
     return next_monday, next_sunday
 
 def get_this_week_range():
     today = datetime.now(tz).date()
-    start_of_week = today - timedelta(days=today.weekday())  # Monday
-    end_of_week = start_of_week + timedelta(days=6)          # Sunday
+    start_of_week = today - timedelta(days=today.weekday())
+    end_of_week = start_of_week + timedelta(days=6)
     return start_of_week, end_of_week
 
 def get_next_weekend():
@@ -136,26 +134,20 @@ def get_next_weekend():
     sunday = saturday + timedelta(days=1)
     return saturday, sunday
 
-def parse_day_of_week(prompt_text: str):
-    prompt_lower = prompt_text.lower()
-    today = datetime.now(tz).date()
-    if "tomorrow" in prompt_lower:
-        return today + timedelta(days=1)
-    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-    for i, day in enumerate(days):
-        if day in prompt_lower:
-            day_diff = (i - today.weekday()) % 7
-            if day_diff == 0:
-                day_diff = 7
-            return today + timedelta(days=day_diff)
-    return None
-
 if prompt := st.chat_input("Ask me about Winterville events..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     prompt_lower = prompt.lower()
+    category = None
+    if "music" in prompt_lower:
+        category = "Music"
+    elif "comedy" in prompt_lower:
+        category = "Comedy"
+    elif "karaoke" in prompt_lower:
+        category = "Karaoke & Open Mic"
+
     if "who made you" in prompt_lower or "who created you" in prompt_lower:
         direct_response = "I was created by three MSBA students at UGA: Sam Toole, Aidan Downey, and Jacob Croskey."
         with st.chat_message("assistant"):
@@ -163,9 +155,7 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
             st.session_state.messages.append({"role": "assistant", "content": direct_response})
         st.stop()
 
-    wants_date_plan = ("plan a date" in prompt_lower or "date night" in prompt_lower)
-
-    if "what is today" in prompt_lower:
+    elif "what is today" in prompt_lower:
         today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
         response_text = f"Today is {today_str}!"
         with st.chat_message("assistant"):
@@ -173,68 +163,33 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
             st.session_state.messages.append({"role": "assistant", "content": response_text})
         st.stop()
 
-elif "this week" in prompt_lower:
-    start_date, end_date = get_this_week_range()
-    df_this_week = filter_events(category=category, start_date=start_date, end_date=end_date)
-    events_text = group_events_by_day(df_this_week)
-    event_lines = events_text.splitlines()
-    trimmed_events_text = "\n".join(event_lines[:40])
-    dataset_context = f"Events for this week (Monday {start_date} → Sunday {end_date}):\n\n{trimmed_events_text}"
+    elif "this week" in prompt_lower:
+        start_date, end_date = get_this_week_range()
+        df = filter_events(category=category, start_date=start_date, end_date=end_date)
+        events_text = group_events_by_day(df)
+        dataset_context = f"Events for this week (Monday {start_date} → Sunday {end_date}):\n\n{events_text}"
 
-elif "next week" in prompt_lower:
-    next_monday, next_sunday = get_next_week_range()
-    df_next_week = filter_events(category=category, start_date=next_monday, end_date=next_sunday)
-    events_text = group_events_by_day(df_next_week)
-    event_lines = events_text.splitlines()
-    trimmed_events_text = "\n".join(event_lines[:40])
-    dataset_context = f"Events for next week (Monday {next_monday} → Sunday {next_sunday}):\n\n{trimmed_events_text}"
+    elif "next week" in prompt_lower:
+        start_date, end_date = get_next_week_range()
+        df = filter_events(category=category, start_date=start_date, end_date=end_date)
+        events_text = group_events_by_day(df)
+        dataset_context = f"Events for next week (Monday {start_date} → Sunday {end_date}):\n\n{events_text}"
 
-elif "weekend" in prompt_lower:
-    sat, sun = get_next_weekend()
-    df_weekend = filter_events(category=category, start_date=sat, end_date=sun)
-    events_text = group_events_by_day(df_weekend)
-    event_lines = events_text.splitlines()
-    trimmed_events_text = "\n".join(event_lines[:40])
-    dataset_context = f"This weekend (Saturday {sat} & Sunday {sun}):\n\n{trimmed_events_text}"
+    elif "weekend" in prompt_lower:
+        start_date, end_date = get_next_weekend()
+        df = filter_events(category=category, start_date=start_date, end_date=end_date)
+        events_text = group_events_by_day(df)
+        dataset_context = f"This weekend (Saturday {start_date} & Sunday {end_date}):\n\n{events_text}"
 
-else:
-    location_substring = None
-    location_match = re.search(r"events.*?(?:at|in)\s+([A-Za-z0-9&\-\']+.*)", prompt_lower)
-    if location_match:
-        location_substring = location_match.group(1).strip()
-    df = filter_events(category=category, location_substring=location_substring)
-    events_text = format_events_simple_list(df)
-    dataset_context = f"Here are upcoming events that match your query:\n\n{events_text}"
-
-        
-    custom_instructions = (
-        f"Hey, it's {today_str} and we're in the Eastern Time Zone. {date_context_text}. "
-        "You're The Winterville Guide —a chill, collegiate event and date planning assistant with access to the Winterville events dataset. "
-        "When someone asks 'What are you?', you may respond with a friendly greeting and mention that you're The Winterville Guide. "
-        "If asked 'What is your purpose?', say: 'My purpose is to help Winterville residents and the broader community easily discover local events.' "
-        "If asked 'Who made you?' or 'Who created you?', your code is already intercepting that for a direct short answer. "
-        "For purely informational queries (like 'What events are happening X day?'), list them in chronological order. "
-        "If a query refers to 'this weekend', show events for Saturday & Sunday. "
-        "If a user query includes a location, return events at that venue. Don’t require exact name matches—use reasonable inference to match locations based on the data (e.g., synonyms, abbreviations, or close matches)."
-        "For 'next week' queries, group events by day. "
-        "If asked to plan a date, propose a creative itinerary using a few events from the dataset. "
-        "Don't do a strict 'morning/afternoon/evening' formula. "
-        "You can recommend dinner spots from your knowledge of Athens. "
-       "When a user asks about 'this week,' include all events with valid dates that fall between Monday and Sunday of the current week, even if multiple events occur at the same time or location, and ensure date parsing is robust using lowercase, stripped column names and errors='coerce'."
-        "Ensure your final output is well-organized, consistent, and uses plain text. "
-        f"{extra_date_instructions}\n\n"
-        "Below is the relevant dataset context:\n"
-        f"{dataset_context}"
-    )
-
-    final_query = (
-        f"{custom_instructions}\n\n"
-        f"User's prompt: {prompt}\n\n"
-        "Assistant:"
-    )
-
-    llm_response = chat_engine.chat(final_query)
+    else:
+        location_substring = None
+        location_match = re.search(r"events.*?(?:at|in)\s+([A-Za-z0-9&\-']+.*)", prompt_lower)
+        if location_match:
+            location_substring = location_match.group(1).strip()
+        df = filter_events(category=category, location_substring=location_substring)
+        events_text = format_events_simple_list(df)
+        dataset_context = f"Here are upcoming events that match your query:\n\n{events_text}"
 
     with st.chat_message("assistant"):
-        st.markdown(llm_response)
-        st.session_state.messages.append({"role": "assistant", "content": llm_response})
+        st.markdown(dataset_context)
+        st.session_state.messages.append({"role": "assistant", "content": dataset_context})
