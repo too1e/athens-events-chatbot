@@ -244,7 +244,7 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
         )
 
     custom_instructions = (
-        "Hey, it's {today_str} and we're in the Eastern Time Zone. {date_context_text}. "
+        f"Hey, it's {today_str} and we're in the Eastern Time Zone. {date_context_text}. "
         "You're The Winterville Guide —a chill, collegiate event and date planning assistant with access to the Winterville events dataset. "
         "When someone asks 'What are you?', you may respond with a friendly greeting and mention that you're The Winterville Guide. "
         "If asked 'What is your purpose?', say: 'My purpose is to help Winterville residents and the broader community easily discover local events.' "
@@ -256,7 +256,7 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
         "If asked to plan a date, propose a creative itinerary using a few events from the dataset. "
         "Don't do a strict 'morning/afternoon/evening' formula. "
         "You can recommend dinner spots from your knowledge of Athens. "
-        "When a user asks about "this week," include all events with valid dates that fall between Monday and Sunday of the current week, even if multiple events occur at the same time or location, and ensure date parsing is robust using lowercase, stripped column names and errors='coerce'."
+       "When a user asks about 'this week,' include all events with valid dates that fall between Monday and Sunday of the current week, even if multiple events occur at the same time or location, and ensure date parsing is robust using lowercase, stripped column names and errors='coerce'."
         "Ensure your final output is well-organized, consistent, and uses plain text. "
         f"{extra_date_instructions}\n\n"
         "Below is the relevant dataset context:\n"
