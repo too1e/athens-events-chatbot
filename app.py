@@ -32,14 +32,13 @@ chat_engine = index.as_chat_engine(chat_mode="context")
 
 # Load and parse events data
 events_df = pd.read_excel("athens_events.xlsx")
-events_df["Date"] = pd.to_datetime(events_df["Date"], errors="coerce").dt.date
+events_df.columns = events_df.columns.str.strip().str.lower()
+events_df["date"] = pd.to_datetime(events_df["date"], errors="coerce").dt.date
 
 st.title("The Winterville Guide")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "last_target_date" not in st.session_state:
-    st.session_state.last_target_date = None
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -56,12 +55,12 @@ def format_time_str(time_val):
 def format_events_simple_list(df: pd.DataFrame) -> str:
     if df.empty:
         return "_No events found._"
-    df = df.sort_values(["Date","Time"])
+    df = df.sort_values(["date", "time"])
     lines = []
     for _, row in df.iterrows():
-        date_str = row["Date"].strftime("%A, %B %d, %Y") if row["Date"] else ""
-        time_str = format_time_str(row["Time"])
-        price_val = row.get("Price", 0)
+        date_str = row["date"].strftime("%A, %B %d, %Y") if row["date"] else ""
+        time_str = format_time_str(row["time"])
+        price_val = row.get("price", 0)
         if pd.notnull(price_val):
             try:
                 pval = float(price_val)
@@ -70,26 +69,26 @@ def format_events_simple_list(df: pd.DataFrame) -> str:
                 price_str = str(price_val)
         else:
             price_str = "Free"
-        line = f"- {row['Event']} on {date_str} at {time_str} @ {row['Location']} ({price_str})"
+        line = f"- {row['event']} on {date_str} at {time_str} @ {row['location']} ({price_str})"
         lines.append(line)
     return "\n".join(lines)
 
 def group_events_by_day(df: pd.DataFrame) -> str:
     if df.empty:
         return "_No events found._"
-    df = df.sort_values(["Date", "Time"])
+    df = df.sort_values(["date", "time"])
     grouped_text = ""
     current_day = None
     for _, row in df.iterrows():
-        day_date = row["Date"]
+        day_date = row["date"]
         if day_date != current_day:
             if grouped_text:
                 grouped_text += "\n\n"
             day_str = day_date.strftime("%A, %B %d, %Y")
             grouped_text += f"**{day_str}**\n"
             current_day = day_date
-        time_str = format_time_str(row["Time"])
-        price_val = row.get("Price", 0)
+        time_str = format_time_str(row["time"])
+        price_val = row.get("price", 0)
         if pd.notnull(price_val):
             try:
                 pval = float(price_val)
@@ -98,34 +97,33 @@ def group_events_by_day(df: pd.DataFrame) -> str:
                 price_str = str(price_val)
         else:
             price_str = "Free"
-        bullet_line = f"- {row['Event']} at {time_str} @ {row['Location']} ({price_str})"
+        bullet_line = f"- {row['event']} at {time_str} @ {row['location']} ({price_str})"
         grouped_text += bullet_line + "\n"
     return grouped_text.strip()
 
 def filter_events(category=None, start_date=None, end_date=None, location_substring=None) -> pd.DataFrame:
     df = events_df.copy()
     if category:
-        df = df[df["Category"].fillna("").str.lower() == category.lower()]
+        df = df[df["category"].fillna("").str.lower() == category.lower()]
     if location_substring:
-        df = df[df["Location"].fillna("").str.lower().str.contains(location_substring.lower())]
+        df = df[df["location"].fillna("").str.lower().str.contains(location_substring.lower())]
     if start_date and end_date:
-        df = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)]
+        df = df[(df["date"] >= start_date) & (df["date"] <= end_date)]
     elif start_date:
-        df = df[df["Date"] == start_date]
+        df = df[df["date"] == start_date]
     return df
-
-def get_next_week_range():
-    today = datetime.now(tz).date()
-    days_until_monday = (7 - today.weekday()) % 7 or 7
-    next_monday = today + timedelta(days=days_until_monday)
-    next_sunday = next_monday + timedelta(days=6)
-    return next_monday, next_sunday
 
 def get_this_week_range():
     today = datetime.now(tz).date()
     start_of_week = today - timedelta(days=today.weekday())
     end_of_week = start_of_week + timedelta(days=6)
     return start_of_week, end_of_week
+
+def get_next_week_range():
+    today = datetime.now(tz).date()
+    next_monday = today + timedelta(days=(7 - today.weekday()))
+    next_sunday = next_monday + timedelta(days=6)
+    return next_monday, next_sunday
 
 def get_next_weekend():
     today = datetime.now(tz).date()
@@ -155,31 +153,25 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
             st.session_state.messages.append({"role": "assistant", "content": direct_response})
         st.stop()
 
-    elif "what is today" in prompt_lower:
+    start_date = end_date = None
+    if "what is today" in prompt_lower:
         today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
-        response_text = f"Today is {today_str}!"
-        with st.chat_message("assistant"):
-            st.markdown(response_text)
-            st.session_state.messages.append({"role": "assistant", "content": response_text})
-        st.stop()
+        dataset_context = f"Today is {today_str}."
 
     elif "this week" in prompt_lower:
         start_date, end_date = get_this_week_range()
         df = filter_events(category=category, start_date=start_date, end_date=end_date)
-        events_text = group_events_by_day(df)
-        dataset_context = f"Events for this week (Monday {start_date} → Sunday {end_date}):\n\n{events_text}"
+        dataset_context = group_events_by_day(df)
 
     elif "next week" in prompt_lower:
         start_date, end_date = get_next_week_range()
         df = filter_events(category=category, start_date=start_date, end_date=end_date)
-        events_text = group_events_by_day(df)
-        dataset_context = f"Events for next week (Monday {start_date} → Sunday {end_date}):\n\n{events_text}"
+        dataset_context = group_events_by_day(df)
 
     elif "weekend" in prompt_lower:
         start_date, end_date = get_next_weekend()
         df = filter_events(category=category, start_date=start_date, end_date=end_date)
-        events_text = group_events_by_day(df)
-        dataset_context = f"This weekend (Saturday {start_date} & Sunday {end_date}):\n\n{events_text}"
+        dataset_context = group_events_by_day(df)
 
     else:
         location_substring = None
@@ -187,9 +179,11 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
         if location_match:
             location_substring = location_match.group(1).strip()
         df = filter_events(category=category, location_substring=location_substring)
-        events_text = format_events_simple_list(df)
-        dataset_context = f"Here are upcoming events that match your query:\n\n{events_text}"
+        dataset_context = format_events_simple_list(df)
+
+    final_query = f"You are The Winterville Guide — an assistant for local events.\n\nUser asked: {prompt}\n\nRelevant events:\n{dataset_context}"
+    llm_response = chat_engine.chat(final_query)
 
     with st.chat_message("assistant"):
-        st.markdown(dataset_context)
-        st.session_state.messages.append({"role": "assistant", "content": dataset_context})
+        st.markdown(llm_response)
+        st.session_state.messages.append({"role": "assistant", "content": llm_response})
