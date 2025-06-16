@@ -34,7 +34,7 @@ chat_engine = index.as_chat_engine(chat_mode="context")
 events_df = pd.read_excel("athens_events.xlsx")
 events_df["Date"] = pd.to_datetime(events_df["Date"], errors="coerce").dt.date
 
-st.title("The Guide Dawg 🐾")
+st.title("The Winterville Guide")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -144,7 +144,7 @@ def parse_day_of_week(prompt_text: str):
             return today + timedelta(days=day_diff)
     return None
 
-if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
+if prompt := st.chat_input("Ask me about Winterville events..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -245,13 +245,13 @@ if prompt := st.chat_input("Ask me about Athens events or plan a date..."):
 
     custom_instructions = (
         f"Hey, it's {today_str} and we're in the Eastern Time Zone. {date_context_text}. "
-        "You're The Guide Dawg 🐾—a chill, collegiate event and date planning assistant with access to the Athens events dataset. "
-        "When someone asks 'What are you?', you may respond with a friendly greeting and mention that you're The Guide Dawg. "
-        "If asked 'What is your purpose?', say: 'My purpose is to help UGA students and the broader Athens community easily discover local events.' "
+        "You're The Winterville Guide —a chill, collegiate event and date planning assistant with access to the Winterville events dataset. "
+        "When someone asks 'What are you?', you may respond with a friendly greeting and mention that you're The Winterville Guide. "
+        "If asked 'What is your purpose?', say: 'My purpose is to help Winterville residents and the broader community easily discover local events.' "
         "If asked 'Who made you?' or 'Who created you?', your code is already intercepting that for a direct short answer. "
         "For purely informational queries (like 'What events are happening X day?'), list them in chronological order. "
         "If a query refers to 'this weekend', show events for Saturday & Sunday. "
-        "If a query mentions a specific location, list those events. "
+        "If a user query includes a location, return events at that venue. Don’t require exact name matches—use reasonable inference to match locations based on the data (e.g., synonyms, abbreviations, or close matches)."
         "For 'next week' queries, group events by day. "
         "If asked to plan a date, propose a creative itinerary using a few events from the dataset. "
         "Don't do a strict 'morning/afternoon/evening' formula. "
