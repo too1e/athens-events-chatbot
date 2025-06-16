@@ -166,12 +166,13 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
     wants_date_plan = ("plan a date" in prompt_lower or "date night" in prompt_lower)
 
     if "what is today" in prompt_lower:
-        today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
-        response_text = f"Today is {today_str}!"
-        with st.chat_message("assistant"):
-            st.markdown(response_text)
-            st.session_state.messages.append({"role": "assistant", "content": response_text})
-        st.stop()
+    today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
+    response_text = f"Today is {today_str}!"
+    with st.chat_message("assistant"):
+        st.markdown(response_text)
+        st.session_state.messages.append({"role": "assistant", "content": response_text})
+    st.stop()
+
 elif "this week" in prompt_lower:
     start_date, end_date = get_this_week_range()
     df_this_week = filter_events(category=category, start_date=start_date, end_date=end_date)
@@ -188,35 +189,22 @@ elif "next week" in prompt_lower:
     trimmed_events_text = "\n".join(event_lines[:40])
     dataset_context = f"Events for next week (Monday {next_monday} → Sunday {next_sunday}):\n\n{trimmed_events_text}"
 
-    elif "weekend" in prompt_lower:
-        category = None
-        if "music" in prompt_lower:
-            category = "Music"
-        elif "comedy" in prompt_lower:
-            category = "Comedy"
-        elif "karaoke" in prompt_lower:
-            category = "Karaoke & Open Mic"
+elif "weekend" in prompt_lower:
+    sat, sun = get_next_weekend()
+    df_weekend = filter_events(category=category, start_date=sat, end_date=sun)
+    events_text = group_events_by_day(df_weekend)
+    event_lines = events_text.splitlines()
+    trimmed_events_text = "\n".join(event_lines[:40])
+    dataset_context = f"This weekend (Saturday {sat} & Sunday {sun}):\n\n{trimmed_events_text}"
 
-        sat, sun = get_next_weekend()
-        df_weekend = filter_events(category=category, start_date=sat, end_date=sun)
-        events_text = group_events_by_day(df_weekend)
-        event_lines = events_text.splitlines()
-        trimmed_events_text = "\n".join(event_lines[:40])
-        dataset_context = f"This weekend (Saturday {sat} & Sunday {sun}):\n\n{trimmed_events_text}"
-
-    else:
-        category = None
-        if "music" in prompt_lower:
-            category = "Music"
-        elif "comedy" in prompt_lower:
-            category = "Comedy"
-        elif "karaoke" in prompt_lower:
-            category = "Karaoke & Open Mic"
-
-        location_substring = None
-        location_match = re.search(r'events.*?(?:at|in)\s+([A-Za-z0-9\&\-\']+.*)', prompt_lower)
-        if location_match:
-            location_substring = location_match.group(1).strip()
+else:
+    location_substring = None
+    location_match = re.search(r'events.*?(?:at|in)\\s+([A-Za-z0-9\\&\\-\\']+.*)', prompt_lower)
+    if location_match:
+        location_substring = location_match.group(1).strip()
+    df = filter_events(category=category, location_substring=location_substring)
+    events_text = format_events_simple_list(df)
+    dataset_context = f"Here are upcoming events that match your query:\n\n{events_text}"
 
         if wants_date_plan:
             day_date = parse_day_of_week(prompt)
