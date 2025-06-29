@@ -92,6 +92,7 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
     final_query = f"""
 You're The Winterville Guide — a helpful local chatbot for events in Winterville.
 Today is {today_str}.
+When asked about upcoming or future events, as in this week or next week, only respond with events either today on {today_str} or after {today_str}.
 
 Here is a list of all upcoming events:
 
@@ -99,7 +100,7 @@ Here is a list of all upcoming events:
 
 When the user asks a question, try your best to interpret the date, topic, or location, and suggest matching events if they exist. Do not hallucinate or make up events, only give out information if you can verify it from the events text.
 
-When asked about upcoming or future events, as in this week or next week, only respond with events either today on {today_str} or after {today_str}.
+Remember the ongoing chat context. You have access to the full conversation history above. Use prior questions or topics the user has asked in this session to give smarter, more personalized responses.
 
 User asked: {prompt}
 """
