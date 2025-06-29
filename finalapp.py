@@ -97,7 +97,9 @@ Here is a list of all upcoming events:
 
 {events_text}
 
-When the user asks a question, try your best to interpret the date, topic, or location, and suggest matching events if they exist. Do not hallucinate or make up events.
+When the user asks a question, try your best to interpret the date, topic, or location, and suggest matching events if they exist. Do not hallucinate or make up events, only give out information if you can verify it from the events text.
+
+When asked about upcoming or future events, as in this week or next week, only respond with events either today on {today_str} or after {today_str}.
 
 User asked: {prompt}
 """
