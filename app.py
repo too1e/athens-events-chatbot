@@ -14,6 +14,7 @@ os.environ["TIKTOKEN_CACHE_DIR"] = "./tiktoken_cache"
 
 # Timezone setup
 tz = pytz.timezone('America/New_York')
+now = datetime.now(tz)
 
 # Load API key
 if "OPENAI_API_KEY" not in os.environ:
@@ -82,50 +83,51 @@ def filter_events(start_date=None, end_date=None, category=None):
     return df
 
 def get_week_range(offset=0):
-    today = datetime.now(tz).date()
+    today = now.date()
     monday = today - timedelta(days=today.weekday()) + timedelta(weeks=offset)
     sunday = monday + timedelta(days=6)
     return monday, sunday
 
 def interpret_prompt(prompt):
     prompt = prompt.lower()
-    today = datetime.now(tz).date()
+    today = now.date()
 
-    if "today" in prompt or "what is the date" in prompt:
-        return filter_events(start_date=today)
+    if "today" in prompt or "what is the date" in prompt or "todays date" in prompt:
+        return filter_events(start_date=today), f"Today is {now.strftime('%A, %B %d, %Y')}."
     elif "tomorrow" in prompt:
-        return filter_events(start_date=today + timedelta(days=1))
+        return filter_events(start_date=today + timedelta(days=1)), None
     elif "this week" in prompt or ("going on" in prompt and "week" in prompt):
         start, end = get_week_range()
-        return filter_events(start_date=start, end_date=end)
+        return filter_events(start_date=start, end_date=end), None
     elif "next week" in prompt:
         start, end = get_week_range(offset=1)
-        return filter_events(start_date=start, end_date=end)
+        return filter_events(start_date=start, end_date=end), None
     elif "weekend" in prompt:
         saturday = today + timedelta((5 - today.weekday()) % 7)
         sunday = saturday + timedelta(days=1)
-        return filter_events(start_date=saturday, end_date=sunday)
+        return filter_events(start_date=saturday, end_date=sunday), None
     else:
-        # Try matching dates like "July 5" or "7/5/2025"
         match = re.search(r"(\b\w+ \d{1,2}\b|\d{1,2}/\d{1,2}/\d{2,4})", prompt)
         if match:
             try:
                 date_obj = pd.to_datetime(match.group(0), errors="coerce").date()
-                return filter_events(start_date=date_obj)
+                return filter_events(start_date=date_obj), None
             except:
                 pass
-        # Default to all future events
-        return events_df[events_df["date"] >= today]
+        return events_df[events_df["date"] >= today], None
 
 if prompt := st.chat_input("Ask me about Winterville events..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    df = interpret_prompt(prompt)
+    df, override_response = interpret_prompt(prompt)
     events_text = group_events_by_day(df)
 
-    final_query = f"""
+    if override_response:
+        response = f"{override_response}\n\n{events_text}"
+    else:
+        final_query = f"""
 You are The Winterville Guide — an AI assistant that ONLY answers using the list of Winterville events shown below.
 
 User asked: \"{prompt}\"
@@ -136,9 +138,8 @@ If none match, say politely that there are no events that fit.
 Event list:
 {events_text}
 """
-
-    llm_response = chat_engine.chat(final_query)
+        response = chat_engine.chat(final_query)
 
     with st.chat_message("assistant"):
-        st.markdown(llm_response)
-        st.session_state.messages.append({"role": "assistant", "content": llm_response})
+        st.markdown(response)
+        st.session_state.messages.append({"role": "assistant", "content": response})
