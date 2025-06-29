@@ -99,10 +99,6 @@ Here is a list of all upcoming events:
 
 When the user asks a question, try your best to interpret the date, topic, or location, and suggest matching events if they exist. Do not hallucinate or make up events.
 
-If asked about restaurants or places not in the dataset, you may reference what you generally know about Winterville, GA — but make clear that this is based on your general knowledge, and recommend checking Google Maps or a city guide to confirm.
-
-Do not make up business names, locations, or addresses unless you're sure they're real. Say you don't have that info if you're unsure.
-
 User asked: {prompt}
 """
 
