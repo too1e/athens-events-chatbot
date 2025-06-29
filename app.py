@@ -22,7 +22,7 @@ if "OPENAI_API_KEY" not in os.environ:
 # Load environment variables from .env (optional, for local development) 
 load_dotenv()
 
-# Set up the OpenAI LLM (using GPT-3.5-turbo; change to GPT-4 if desired)
+# Set up the OpenAI LLM
 Settings.llm = OpenAI(model="gpt-3.5-turbo")
 
 # Load the stored index and create chat engine
@@ -48,6 +48,10 @@ def format_time_str(time_val):
     if pd.isnull(time_val):
         return ""
     try:
+        if isinstance(time_val, datetime):
+            return time_val.strftime("%-I:%M %p")
+        if isinstance(time_val, str) and "AM" in time_val.upper():
+            return pd.to_datetime(time_val).strftime("%-I:%M %p")
         return datetime.strptime(str(time_val), "%H:%M:%S").strftime("%-I:%M %p")
     except:
         return str(time_val)
@@ -103,6 +107,13 @@ def group_events_by_day(df: pd.DataFrame) -> str:
 
 def filter_events(category=None, start_date=None, end_date=None, location_substring=None) -> pd.DataFrame:
     df = events_df.copy()
+
+    # Coerce input types just in case
+    if isinstance(start_date, datetime):
+        start_date = start_date.date()
+    if isinstance(end_date, datetime):
+        end_date = end_date.date()
+
     if category:
         df = df[df["category"].fillna("").str.lower() == category.lower()]
     if location_substring:
@@ -154,6 +165,8 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
         st.stop()
 
     start_date = end_date = None
+    dataset_context = ""
+
     if "what is today" in prompt_lower:
         today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
         dataset_context = f"Today is {today_str}."
@@ -174,16 +187,33 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
         dataset_context = group_events_by_day(df)
 
     else:
+        # Fallback: show upcoming events
+        today = datetime.now(tz).date()
         location_substring = None
         location_match = re.search(r"events.*?(?:at|in)\s+([A-Za-z0-9&\-']+.*)", prompt_lower)
         if location_match:
             location_substring = location_match.group(1).strip()
-        df = filter_events(category=category, location_substring=location_substring)
-        dataset_context = format_events_simple_list(df)
+        df = filter_events(category=category, start_date=today, location_substring=location_substring)
+        dataset_context = group_events_by_day(df)
 
-    final_query = f"You are The Winterville Guide — an assistant for local events.\n\nUser asked: {prompt}\n\nRelevant events:\n{dataset_context}"
+    final_query = f"""
+You are The Winterville Guide — an AI assistant that ONLY answers using the list of Winterville events shown below.
+
+User asked: "{prompt}"
+
+If there are matching events in the list, summarize them.
+If none match, say politely that there are no events that fit.
+
+Event list:
+{dataset_context}
+"""
+
     llm_response = chat_engine.chat(final_query)
 
     with st.chat_message("assistant"):
         st.markdown(llm_response)
         st.session_state.messages.append({"role": "assistant", "content": llm_response})
+
+    with st.expander("Debug Info"):
+        st.markdown("### Prompt Sent to LLM")
+        st.code(final_query, language="markdown")
