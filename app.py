@@ -81,16 +81,17 @@ def filter_events(start_date=None, end_date=None, category=None):
         df = df[df["category"].fillna("").str.lower() == category.lower()]
     return df
 
-def get_week_range(weeks_ahead=0):
+def get_week_range(offset=0):
     today = datetime.now(tz).date()
-    monday = today - timedelta(days=today.weekday()) + timedelta(weeks=weeks_ahead)
+    monday = today - timedelta(days=today.weekday()) + timedelta(weeks=offset)
     sunday = monday + timedelta(days=6)
     return monday, sunday
 
 def interpret_prompt(prompt):
     prompt = prompt.lower()
     today = datetime.now(tz).date()
-    if "today" in prompt:
+
+    if "today" in prompt or "what is the date" in prompt:
         return filter_events(start_date=today)
     elif "tomorrow" in prompt:
         return filter_events(start_date=today + timedelta(days=1))
@@ -98,19 +99,23 @@ def interpret_prompt(prompt):
         start, end = get_week_range()
         return filter_events(start_date=start, end_date=end)
     elif "next week" in prompt:
-        start, end = get_week_range(1)
+        start, end = get_week_range(offset=1)
         return filter_events(start_date=start, end_date=end)
     elif "weekend" in prompt:
         saturday = today + timedelta((5 - today.weekday()) % 7)
         sunday = saturday + timedelta(days=1)
         return filter_events(start_date=saturday, end_date=sunday)
-    elif match := re.search(r"july \d+|\d+/\d+/\d+", prompt):
-        try:
-            date_obj = pd.to_datetime(match.group(0), errors="coerce").date()
-            return filter_events(start_date=date_obj)
-        except:
-            pass
-    return events_df[events_df["date"] >= today]  # Default: future events
+    else:
+        # Try matching dates like "July 5" or "7/5/2025"
+        match = re.search(r"(\b\w+ \d{1,2}\b|\d{1,2}/\d{1,2}/\d{2,4})", prompt)
+        if match:
+            try:
+                date_obj = pd.to_datetime(match.group(0), errors="coerce").date()
+                return filter_events(start_date=date_obj)
+            except:
+                pass
+        # Default to all future events
+        return events_df[events_df["date"] >= today]
 
 if prompt := st.chat_input("Ask me about Winterville events..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
