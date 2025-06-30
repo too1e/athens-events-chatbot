@@ -36,26 +36,36 @@ events_df = pd.read_excel("athens_events.xlsx")
 events_df.columns = events_df.columns.str.strip().str.lower()
 events_df["date"] = pd.to_datetime(events_df["date"], errors="coerce").dt.date
 
-# Sticky header
+#header
 st.markdown("""
     <style>
-        .sticky-header {
-            position: -webkit-sticky;
-            position: sticky;
-            top: 0;
-            background-color: #0e1117;
-            z-index: 1000;
-            padding-top: 1rem;
-            padding-bottom: 0.5rem;
+        div[data-testid="stHeader"] {
+            display: none;
         }
-        .block-container {
-            padding-top: 0rem;
+        .sticky-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 9999;
+            background-color: #0e1117;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #333;
+        }
+        .sticky-header h1 {
+            margin: 0;
+            font-size: 1.75rem;
+            color: white;
+        }
+        .main {
+            padding-top: 4rem;
         }
     </style>
     <div class="sticky-header">
         <h1>The Winterville Guide</h1>
     </div>
 """, unsafe_allow_html=True)
+
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
