@@ -125,10 +125,10 @@ Today is {today_str} Eastern Time.
 
 If the user asks about "this week", "next week", or similar phrases, define them using the ISO weekday standard:
 
-- "This week" = from Monday to Sunday of the current week (based on today's date)
-- "Next week" = the Monday–Sunday block *after* the current week
+- "This week" = from Sunday to Saturday of the current week (based on today's date)
+- "Next week" = the Sunday–Saturday block *after* the current week
 - "This weekend" = the upcoming Saturday and Sunday
-- "Next weekend" = the Saturday and Sunday of the following week
+- "Next weekend" = the the following Saturday and Sunday after the upcoming Saturday and Sunday
 
 Always interpret phrases like "this Friday" or "two weeks from now" relative to today, using correct calendar math.
 
