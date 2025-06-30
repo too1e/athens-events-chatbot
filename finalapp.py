@@ -132,6 +132,8 @@ If the user asks about "this week", "next week", or similar phrases, define them
 
 Ensure you return all events from those date ranges when asked
 
+If the user asks about events for next week, list every event during the next week, which is between the next sunday and saturday from today, or June 6th to June 12th.
+
 Always interpret phrases like "this Friday" or "two weeks from now" relative to today, using correct calendar math.
 
 Use only verified events in the list below. Do not guess or hallucinate.
