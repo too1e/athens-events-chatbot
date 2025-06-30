@@ -1,110 +1,112 @@
 import streamlit as st
-from datetime import datetime, timedelta
+import os
+from datetime import datetime
+import re
 from dotenv import load_dotenv
 import pandas as pd
 from llama_index.core import StorageContext, load_index_from_storage
 from llama_index.core.settings import Settings
 from llama_index.llms.openai import OpenAI
+import pytz
 
-# Load API key from .env
+# Fix PermissionError by setting a custom tiktoken cache directory
+os.environ["TIKTOKEN_CACHE_DIR"] = "./tiktoken_cache"
+
+# Ensure timezone is set
+tz = pytz.timezone('America/New_York')
+today_str = datetime.now(tz).strftime("%A, %B %d, %Y")
+
+# Set the API key explicitly from Streamlit secrets (make sure your secrets.toml includes your key)
+if "OPENAI_API_KEY" not in os.environ:
+    os.environ["OPENAI_API_KEY"] = st.secrets["general"]["OPENAI_API_KEY"]
+
+# Load environment variables from .env (optional, for local development) 
 load_dotenv()
 
-# Set up the OpenAI LLM (using GPT-3.5-turbo)
+# Set up the OpenAI LLM (using GPT-3.5-turbo; change to GPT-4 if desired)
 Settings.llm = OpenAI(model="gpt-3.5-turbo")
 
-# Load the stored index built from your Athens events dataset
+# Load the stored index and create chat engine
 storage_context = StorageContext.from_defaults(persist_dir="./athens_events_index")
 index = load_index_from_storage(storage_context)
 chat_engine = index.as_chat_engine(chat_mode="context")
 
-# Load the events dataset and ensure the Date column is datetime
+# Load and parse events data
 events_df = pd.read_excel("athens_events.xlsx")
-events_df["Date"] = pd.to_datetime(events_df["Date"])
+events_df.columns = events_df.columns.str.strip().str.lower()
+events_df["date"] = pd.to_datetime(events_df["date"], errors="coerce").dt.date
 
-# Set the app title
-st.title("The Athens Passport 🗺️")
+st.title("The Winterville Guide")
 
-# Initialize conversation history if not already present
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display previous messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --- Helper Functions ---
+def format_time_str(time_val):
+    if pd.isnull(time_val):
+        return ""
+    try:
+        return datetime.strptime(str(time_val), "%H:%M:%S").strftime("%-I:%M %p")
+    except:
+        return str(time_val)
 
-# Returns events in the given date range, sorted by Date and Time
-def get_events_for_date_range(start_date, end_date):
-    filtered = events_df[(events_df["Date"] >= start_date) & (events_df["Date"] <= end_date)]
-    if filtered.empty:
-        return "No events found for this period."
-    # Sort events by Date then Time (assuming Time is stored as HH:MM:SS)
-    filtered = filtered.sort_values(by=["Date", "Time"])
-    context = ""
-    for _, row in filtered.iterrows():
-        context += f"• {row['Event']} on {row['Date'].strftime('%A, %B %d, %Y')} at {row['Time']} at {row['Location']}. Price: {row['Price']}\n"
-    return context
+def format_events_simple_list(df: pd.DataFrame) -> str:
+    if df.empty:
+        return "_No events found._"
+    df = df.sort_values(["date", "time"])
+    lines = []
+    for _, row in df.iterrows():
+        date_str = row["date"].strftime("%A, %B %d, %Y") if row["date"] else ""
+        time_str = format_time_str(row["time"])
+        price_val = row.get("price", 0)
+        if pd.notnull(price_val):
+            try:
+                pval = float(price_val)
+                price_str = "Free" if pval == 0 else f"${pval:.2f}"
+            except:
+                price_str = str(price_val)
+        else:
+            price_str = "Free"
+        line = f"- {row['event']} on {date_str} at {time_str} @ {row['location']} ({price_str})"
+        lines.append(line)
+    return "\n".join(lines)
 
-# For simplicity, we simulate "today" as March 13, 2025 for testing
-simulated_today = datetime(2025, 3, 13)
-today_str = simulated_today.strftime("%A, %B %d, %Y")
-
-# Calculate this weekend (Saturday and Sunday) based on simulated_today
-weekday = simulated_today.weekday()  # Monday=0, ..., Sunday=6
-saturday = simulated_today + timedelta(days=(5 - weekday))
-sunday = simulated_today + timedelta(days=(6 - weekday))
-weekend_str = f"{saturday.strftime('%A, %B %d, %Y')} to {sunday.strftime('%A, %B %d, %Y')}"
-
-# Determine dataset context based on the query.
-# For queries mentioning "weekend", we return events for Saturday & Sunday.
-def build_dataset_context(query):
-    query_lower = query.lower()
-    if "weekend" in query_lower or "saturday" in query_lower or "sunday" in query_lower:
-        return get_events_for_date_range(saturday, sunday)
-    else:
-        # Default to events on the simulated "today"
-        return get_events_for_date_range(simulated_today, simulated_today)
-
-# --- Main Interaction ---
-
-if prompt := st.chat_input("Ask me about Athens events or plan a date:"):
-    # Build dataset context based on the query
-    dataset_context = build_dataset_context(prompt)
-    
-    # Build conversation history string
-    conversation_history = "\n".join(
-        [f"{m['role']}: {m['content']}" for m in st.session_state.messages]
-    )
-    
-    # Custom instructions for the assistant:
-    custom_instructions = (
-        f"Today is {today_str} and we're in the Eastern Time Zone. This weekend is from {weekend_str}. "
-        "You're The Athens Passport—a chill, collegiate event and date planning assistant with access to the Athens events dataset. "
-        "When answering queries, always use the dataset as your source of truth and reference specific events with their dates, times, and locations exactly as given. "
-        "Arrange events in logical, chronological order (earlier events before later ones on the same day). "
-        "If a user asks for recommendations (like 'plan a date for me and my girlfriend this weekend'), consider the dataset events first, then add creative suggestions if needed. "
-        "Below is the dataset context for the relevant period:\n"
-        f"{dataset_context}"
-    )
-    
-    # Build the final prompt that includes conversation history and custom instructions
-    full_prompt = (
-        f"{custom_instructions}\n\n"
-        f"Conversation History:\n{conversation_history}\n\n"
-        f"User: {prompt}\n"
-        f"Assistant (in a chill tone):"
-    )
-    
-    # Save the user's query in the session history
+if prompt := st.chat_input("Ask me about Winterville events..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-    
-    # Get the response from the LLM using our full prompt
-    with st.chat_message("assistant"):
-        response = chat_engine.chat(full_prompt)
-        st.markdown(response)
-        st.session_state.messages.append({"role": "assistant", "content": response})
 
+    prompt_lower = prompt.lower()
+    if "who made you" in prompt_lower or "who created you" in prompt_lower:
+        direct_response = "I was created by three MSBA students at UGA: Sam Toole, Aidan Downey, and Jacob Croskey."
+        with st.chat_message("assistant"):
+            st.markdown(direct_response)
+            st.session_state.messages.append({"role": "assistant", "content": direct_response})
+        st.stop()
+
+    events_text = format_events_simple_list(events_df)
+
+    final_query = f"""
+You're The Winterville Guide — a helpful local chatbot for events in Winterville.
+
+Today is {today_str} Eastern Time. When the user asks about dates like "next weekend", "this Friday", or "two weeks from now", always interpret those dates based on the current date — not the dataset. Use reasoning to figure out what exact dates they mean, even if the user doesn't specify a number. If you're unsure, it's okay to ask the user to clarify. Never assume the wrong date range.
+
+Here is a list of all upcoming events:
+
+{events_text}
+
+When the user asks a question, try your best to interpret the date, topic, or location, and suggest matching events if they exist. Do not hallucinate or make up events, only give out information if you can verify it from the events text.
+
+Remember the ongoing chat context. You have access to the full conversation history above. Use prior questions or topics the user has asked in this session to give smarter, more personalized responses.
+
+User asked: {prompt}
+"""
+
+    llm_response = chat_engine.chat(final_query)
+
+    with st.chat_message("assistant"):
+        st.markdown(llm_response)
+        st.session_state.messages.append({"role": "assistant", "content": llm_response})
