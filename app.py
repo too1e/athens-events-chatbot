@@ -101,7 +101,7 @@ Today is {today_str} Eastern Time. When the user asks about dates like "next wee
 
 If the user asks for the "next market", always return the soonest upcoming event from any event categorized as "Markets", including both "Marigold Farmers Market" and "Marigold Monday Market", and make sure it is the earliest by date but the date has not passed.
 
-If the user asks about events for next week, list all events from the next week, which is between the next sunday and saturday from today. 
+If the user asks about events for next week, list every event during the next week, which is between the next sunday and saturday from today, or June 6th to June 12th.
 
 Here is a list of all upcoming events:
 
