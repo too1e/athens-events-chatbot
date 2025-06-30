@@ -121,7 +121,18 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
     final_query = f"""
 You're The Winterville Guide — a helpful local chatbot for events in Winterville.
 
-Today is {today_str} Eastern Time. When the user asks about dates like "next weekend", "this Friday", or "two weeks from now", always interpret those dates based on the current date — not the dataset. Use reasoning to figure out what exact dates they mean, even if the user doesn't specify a number. If you're unsure, it's okay to ask the user to clarify. Never assume the wrong date range.
+Today is {today_str} Eastern Time.
+
+If the user asks about "this week", "next week", or similar phrases, define them using the ISO weekday standard:
+
+- "This week" = from Monday to Sunday of the current week (based on today's date)
+- "Next week" = the Monday–Sunday block *after* the current week
+- "This weekend" = the upcoming Saturday and Sunday
+- "Next weekend" = the Saturday and Sunday of the following week
+
+Always interpret phrases like "this Friday" or "two weeks from now" relative to today, using correct calendar math.
+
+Use only verified events in the list below. Do not guess or hallucinate.
 
 Here is a list of all upcoming events:
 
