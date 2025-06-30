@@ -87,7 +87,12 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
             st.session_state.messages.append({"role": "assistant", "content": direct_response})
         st.stop()
 
-    events_text = format_events_simple_list(events_df)
+    # ✅ NEW: filter market category if applicable
+    filtered_df = events_df.copy()
+    if "market" in prompt_lower or "markets" in prompt_lower:
+        filtered_df = filtered_df[filtered_df["category"].str.lower() == "markets"]
+
+    events_text = format_events_simple_list(filtered_df)
 
     final_query = f"""
 You're The Winterville Guide — a helpful local chatbot for events in Winterville.
