@@ -31,5 +31,5 @@ Copyright © 2025 Sam Toole
 
 All rights reserved.
 
-This code is the intellectual property of Sam Toole. You may not reproduce, distribute, or use this code in whole or in part for any purpose without explicit written permission from the author.
+You may not reproduce, distribute, or use this code in whole or in part for any purpose without explicit written permission from the author.
 
