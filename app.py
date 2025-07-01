@@ -125,8 +125,8 @@ Today is {today_str} Eastern Time.
 
 If the user asks about "this week", "next week", or similar phrases, define them using the ISO weekday standard:
 
-- "This week" = the entire current calender week, including today. list all events of the week, future current and past. 
-- "Next week" = the entire next calender week, which from today is July 6th to July 12th, list all events between those dates
+- "This week" = from Sunday to Saturday of the current week (based on today's date)
+- "Next week" = the entire next calender week, which from today is July 6th to July 12th
 - "This weekend" = the upcoming Saturday and Sunday
 - "Next weekend" = the the following Saturday and Sunday after the upcoming Saturday and Sunday
 
