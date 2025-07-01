@@ -67,7 +67,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -117,21 +116,27 @@ if prompt := st.chat_input("Ask me about Winterville events..."):
             st.session_state.messages.append({"role": "assistant", "content": direct_response})
         st.stop()
 
-    # ✅ NEW: filter market category if applicable
-    filtered_df = events_df.copy()
-    if "market" in prompt_lower or "markets" in prompt_lower:
-        filtered_df = filtered_df[filtered_df["category"].str.lower() == "markets"]
-
-    events_text = format_events_simple_list(filtered_df)
+    events_text = format_events_simple_list(events_df)
 
     final_query = f"""
 You're The Winterville Guide — a helpful local chatbot for events in Winterville.
 
-Today is {today_str} Eastern Time. When the user asks about dates like "next weekend", "this Friday", or "two weeks from now", always interpret those dates based on the current date — not the dataset. Use reasoning to figure out what exact dates they mean, even if the user doesn't specify a number. If you're unsure, it's okay to ask the user to clarify. Never assume the wrong date range.
+Today is {today_str} Eastern Time.
 
-If the user asks for the "next market", always return the soonest upcoming event from any event categorized as "Markets", including both "Marigold Farmers Market" and "Marigold Monday Market", and make sure it is the earliest by date but the date has not passed.
+If the user asks about "this week", "next week", or similar phrases, define them using the ISO weekday standard:
 
-If the user asks about events for next week, list every event during the next week, which is between the next sunday and saturday from today, or June 6th to June 12th.
+- "This week" = from Sunday to Saturday of the current week (based on today's date)
+- "Next week" = the entire next calender week, which from today is July 6th to July 12th
+- "This weekend" = the upcoming Saturday and Sunday
+- "Next weekend" = the the following Saturday and Sunday after the upcoming Saturday and Sunday
+
+Ensure you return all events from those date ranges when asked, no matter how many events are on those dates
+
+Always interpret phrases like "this Friday" or "two weeks from now" relative to today, using correct calendar math.
+
+If the user asks for the "next market", always return the soonest upcoming event from any event categorized as "Markets", including both "Marigold Farmers Market" and "Marigold Monday Market".
+
+Use only verified events in the list below. Do not guess or hallucinate.
 
 Here is a list of all upcoming events:
 
