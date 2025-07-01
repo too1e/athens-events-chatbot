@@ -27,6 +27,9 @@ Feel free to fork this project and submit pull requests. If you find any issues 
 
 ## License
 
-This project is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International License**. You are free to share and adapt the code, but **not for commercial purposes**. For more details, visit [CC BY-NC License](https://creativecommons.org/licenses/by-nc/4.0/).
+Copyright © 2025 Sam Toole
 
+All rights reserved.
+
+This code is the intellectual property of Sam Toole. You may not reproduce, distribute, or use this code in whole or in part for any purpose without explicit written permission from the author.
 
