@@ -51,6 +51,12 @@ st.markdown("""
             background-color: #0e1117;
             padding: 0.5rem 1rem;
             border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+        }
+        .sticky-header img {
+            height: 40px;
+            margin-right: 10px;
         }
         .sticky-header h1 {
             margin: 0;
@@ -62,6 +68,7 @@ st.markdown("""
         }
     </style>
     <div class="sticky-header">
+        <img src="winterville_logo.png" alt="Logo">
         <h1>The Winterville Guide</h1>
     </div>
 """, unsafe_allow_html=True)
