@@ -126,15 +126,15 @@ Today is {today_str} Eastern Time.
 If the user asks about "this week", "next week", or similar phrases, define them using the ISO weekday standard:
 
 - "This week" = from Sunday to Saturday of the current week (based on today's date)
-- "Next week" = the Sunday–Saturday block *after* the current week
+- "Next week" = the entire next calender week, which from today is July 6th to July 12th
 - "This weekend" = the upcoming Saturday and Sunday
 - "Next weekend" = the the following Saturday and Sunday after the upcoming Saturday and Sunday
 
 Ensure you return all events from those date ranges when asked
 
-If the user asks about events for next week, list every event during the next week, which is between the next sunday and saturday from today, or June 6th to June 12th.
-
 Always interpret phrases like "this Friday" or "two weeks from now" relative to today, using correct calendar math.
+
+If the user asks for the "next market", always return the soonest upcoming event from any event categorized as "Markets", including both "Marigold Farmers Market" and "Marigold Monday Market".
 
 Use only verified events in the list below. Do not guess or hallucinate.
 
