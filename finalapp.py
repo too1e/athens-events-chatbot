@@ -130,7 +130,7 @@ If the user asks about "this week", "next week", or similar phrases, define them
 - "This weekend" = the upcoming Saturday and Sunday
 - "Next weekend" = the the following Saturday and Sunday after the upcoming Saturday and Sunday
 
-Ensure you return all events from those date ranges when asked
+Ensure you return all events from those date ranges when asked, no matter how many events are on those dates
 
 Always interpret phrases like "this Friday" or "two weeks from now" relative to today, using correct calendar math.
 
